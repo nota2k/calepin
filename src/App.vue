@@ -22,18 +22,19 @@ import { RouterLink, RouterView } from 'vue-router'
               Accueil
             </RouterLink>
             <RouterLink
+              to="/databases"
+              class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+              active-class="text-blue-600"
+            >
+              Bases de données
+            </RouterLink>
+            <RouterLink
               to="/about"
               class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
               active-class="text-blue-600"
             >
               À propos
             </RouterLink>
-            <a href="#" class="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-              Services
-            </a>
-            <a href="#" class="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-              Contact
-            </a>
           </div>
 
           <!-- Menu mobile -->
@@ -68,13 +69,10 @@ import { RouterLink, RouterView } from 'vue-router'
                 <RouterLink to="/" class="hover:text-white transition-colors">Accueil</RouterLink>
               </li>
               <li>
+                <RouterLink to="/databases" class="hover:text-white transition-colors">Bases de données</RouterLink>
+              </li>
+              <li>
                 <RouterLink to="/about" class="hover:text-white transition-colors">À propos</RouterLink>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors">Services</a>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors">Contact</a>
               </li>
             </ul>
           </div>

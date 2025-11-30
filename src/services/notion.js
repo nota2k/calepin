@@ -44,35 +44,45 @@ async function notionRequest(endpoint, options = {}) {
     }
   })
 
-  // Vérifier si la réponse est du HTML au lieu de JSON (erreur serveur)
+  // Vérifier le Content-Type avant de lire le body
   const contentType = response.headers.get('content-type') || ''
-  if (contentType.includes('text/html')) {
-    const text = await response.text()
-    if (isSearchEndpoint) {
-      console.error('❌ [API /search] Réponse HTML reçue au lieu de JSON')
-      console.error('   Endpoint:', cleanEndpoint)
-      console.error('   URL:', fullUrl)
-      console.error('   Status:', response.status)
-      console.error('   Content-Type:', contentType)
-      console.error('   Contenu HTML (premiers 500 caractères):', text.substring(0, 500))
-    } else {
-      console.error('❌ Réponse HTML reçue au lieu de JSON:', text.substring(0, 500))
+
+  // Lire le body une seule fois (cloner la réponse si nécessaire pour les logs)
+  let responseText = null
+  let responseData = null
+
+  // Si ce n'est pas OK, on va lire le body pour l'erreur
+  if (!response.ok || contentType.includes('text/html')) {
+    responseText = await response.text()
+
+    // Vérifier si la réponse est du HTML au lieu de JSON
+    if (contentType.includes('text/html')) {
+      if (isSearchEndpoint) {
+        console.error('❌ [API /search] Réponse HTML reçue au lieu de JSON')
+        console.error('   Endpoint:', cleanEndpoint)
+        console.error('   URL:', fullUrl)
+        console.error('   Status:', response.status)
+        console.error('   Content-Type:', contentType)
+        console.error('   Contenu HTML (premiers 500 caractères):', responseText.substring(0, 500))
+      } else {
+        console.error('❌ Réponse HTML reçue au lieu de JSON:', responseText.substring(0, 500))
+      }
+      throw new Error('La réponse de l\'API Notion n\'est pas du JSON valide.')
     }
-    throw new Error('La réponse de l\'API Notion n\'est pas du JSON valide.')
   }
 
+  // Si la réponse n'est pas OK, parser l'erreur
   if (!response.ok) {
     let error
     try {
-      error = await response.json()
+      error = JSON.parse(responseText)
     } catch {
-      // Si le parsing JSON échoue, essayer de lire le texte
-      const text = await response.text()
+      // Si le parsing JSON échoue, utiliser le texte brut
       if (isSearchEndpoint) {
         console.error('❌ [API /search] Erreur HTTP avec réponse non-JSON')
         console.error('   Endpoint:', cleanEndpoint)
         console.error('   Status:', response.status)
-        console.error('   Contenu (premiers 500 caractères):', text.substring(0, 500))
+        console.error('   Contenu (premiers 500 caractères):', responseText?.substring(0, 500) || 'Aucun contenu')
       }
       error = { message: `HTTP ${response.status}` }
     }
@@ -84,12 +94,20 @@ async function notionRequest(endpoint, options = {}) {
     throw new Error(error.message || `Erreur HTTP ${response.status}`)
   }
 
-  // Parser le JSON avec gestion d'erreur améliorée
+  // Si OK, parser le JSON
   try {
-    return await response.json()
+    // Si on a déjà lu le texte, le parser, sinon lire directement le JSON
+    if (responseText) {
+      responseData = JSON.parse(responseText)
+    } else {
+      responseData = await response.json()
+    }
+    return responseData
   } catch (parseError) {
-    // Si le parsing échoue, lire le texte pour diagnostiquer
-    const text = await response.text()
+    // Si le parsing échoue, lire le texte pour diagnostiquer (si pas déjà lu)
+    if (!responseText) {
+      responseText = await response.text()
+    }
     if (isSearchEndpoint) {
       console.error('❌ [API /search] Erreur lors du parsing JSON')
       console.error('   Endpoint:', cleanEndpoint)
@@ -97,13 +115,13 @@ async function notionRequest(endpoint, options = {}) {
       console.error('   Status:', response.status)
       console.error('   Content-Type:', contentType)
       console.error('   Erreur de parsing:', parseError.message)
-      console.error('   Contenu reçu (premiers 500 caractères):', text.substring(0, 500))
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error('   Contenu reçu (premiers 500 caractères):', responseText.substring(0, 500))
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
         console.error('   ⚠️  La réponse semble être du HTML au lieu de JSON')
       }
     } else {
       console.error('❌ Erreur lors du parsing JSON:', parseError.message)
-      console.error('   Contenu reçu:', text.substring(0, 500))
+      console.error('   Contenu reçu:', responseText.substring(0, 500))
     }
     throw new Error(`Erreur de parsing JSON: ${parseError.message}. La réponse du serveur n'est pas du JSON valide.`)
   }

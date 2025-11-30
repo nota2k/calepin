@@ -6,15 +6,21 @@
   Deny from all
 </FilesMatch>
 
+# Bloquer l'accès au fichier de configuration API
+<FilesMatch "^config\.php$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
 # Activer le moteur de réécriture
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
   # Proxy pour l'API Notion - doit être avant la règle générale
-  # Rediriger /api/notion/* vers le proxy PHP
+  # Rediriger /api/notion/* vers le proxy PHP en passant le chemin comme paramètre
   RewriteCond %{REQUEST_URI} ^/api/notion(/.*)?$
-  RewriteRule ^api/notion(/.*)?$ /api/notion-proxy.php [L,QSA]
+  RewriteRule ^api/notion(/.*)?$ /api/notion-proxy/index.php?path=$1 [L,QSA]
 
   # Rediriger toutes les requêtes vers index.html sauf les fichiers existants et le répertoire /api/
   RewriteCond %{REQUEST_URI} !^/api/
@@ -22,6 +28,13 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
 </IfModule>
+
+# Redirection HTTPS (optionnel - décommentez si nécessaire)
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteCond %{HTTPS} off
+#   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
 
 # Compression des fichiers texte
 <IfModule mod_deflate.c>
@@ -56,7 +69,7 @@
   ExpiresByType text/html "access plus 0 seconds"
 </IfModule>
 
-# En-têtes de sécurité
+# En-têtes de sécurité (optionnel mais recommandé)
 <IfModule mod_headers.c>
   # Désactiver l'affichage du type de serveur
   Header unset Server

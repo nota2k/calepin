@@ -1,0 +1,43 @@
+<?php
+/**
+ * Configuration pour le proxy API Notion - FICHIER D'EXEMPLE
+ * 
+ * ⚠️ Copiez ce fichier en config.php et remplacez 'VOTRE_CLE_API_NOTION'
+ * par votre vraie clé API Notion.
+ * 
+ * Commande : cp api/config.php.example api/config.php
+ */
+
+// Définir la clé API Notion
+// Vous pouvez aussi utiliser une variable d'environnement au lieu de la mettre ici
+define('NOTION_SECRET', getenv('NOTION_SECRET') ?: getenv('VITE_NOTION_SECRET') ?: 'VOTRE_CLE_API_NOTION');
+
+// Si la clé n'est toujours pas définie, essayer de la lire depuis .env
+if (NOTION_SECRET === 'VOTRE_CLE_API_NOTION') {
+    $envFiles = [
+        __DIR__ . '/../.env',
+        __DIR__ . '/../.env.production',
+        __DIR__ . '/.env',
+        __DIR__ . '/.env.production'
+    ];
+    
+    foreach ($envFiles as $envFile) {
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line) || strpos($line, '#') === 0) {
+                    continue;
+                }
+                if (preg_match('/^NOTION_SECRET=(.+)$/', $line, $matches)) {
+                    define('NOTION_SECRET', trim($matches[1], '"\''));
+                    break 2;
+                }
+                if (preg_match('/^VITE_NOTION_SECRET=(.+)$/', $line, $matches)) {
+                    define('NOTION_SECRET', trim($matches[1], '"\''));
+                    break 2;
+                }
+            }
+        }
+    }
+}

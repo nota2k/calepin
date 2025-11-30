@@ -43,10 +43,26 @@ const formFields = computed(() => {
   })
 })
 
+const focusInHandler = (event) => {
+  const target = event.target
+  if (target && target.tagName && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
+    if (!target.control) {
+      Object.defineProperty(target, 'control', {
+        get: () => target,
+        configurable: true,
+        enumerable: false
+      })
+    }
+  }
+}
+
 onMounted(async () => {
   try {
     loading.value = true
     databases.value = await listAllNotionDatabases()
+
+    // Ajouter un gestionnaire d'événements global pour protéger les champs au focus
+    document.addEventListener('focusin', focusInHandler, true) // Utiliser capture phase pour intercepter avant les extensions
   } catch (err) {
     error.value = 'Impossible de charger les bases de données'
     console.error(err)
@@ -54,6 +70,15 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// Watcher pour protéger les champs quand ils sont ajoutés au DOM
+watch(formFields, async () => {
+  await nextTick()
+  await nextTick()
+  setTimeout(() => {
+    protectAllFormFieldsFromExtensions()
+  }, 100)
+}, { deep: true })
 
 watch(selectedDatabaseId, async (newId) => {
   if (!newId) {
@@ -103,6 +128,7 @@ watch(selectedDatabaseId, async (newId) => {
     await nextTick() // Double nextTick pour s'assurer que le DOM est complètement rendu
     // Petit délai pour garantir que le DOM est complètement prêt
     setTimeout(() => {
+      protectAllFormFieldsFromExtensions()
       initializeTomSelectForGenre()
     }, 150)
   } catch (err) {
@@ -112,6 +138,47 @@ watch(selectedDatabaseId, async (newId) => {
     loading.value = false
   }
 })
+
+function protectAllFormFieldsFromExtensions() {
+  // Protéger tous les champs du formulaire contre les erreurs des extensions de navigateur
+  formFields.value.forEach(field => {
+    const element = document.getElementById(field.key)
+    if (element && !element.control) {
+      Object.defineProperty(element, 'control', {
+        get: () => element,
+        configurable: true,
+        enumerable: false
+      })
+    }
+
+    // Pour les champs checkbox, protéger aussi le label associé
+    if (field.type === 'checkbox') {
+      const checkbox = document.getElementById(field.key)
+      if (checkbox && !checkbox.control) {
+        Object.defineProperty(checkbox, 'control', {
+          get: () => checkbox,
+          configurable: true,
+          enumerable: false
+        })
+      }
+    }
+
+    // Pour les champs multi_select avec checkboxes, protéger chaque checkbox
+    if (field.type === 'multi_select' && field.options) {
+      field.options.forEach(option => {
+        const checkboxId = `${field.key}-${option.name}`
+        const checkbox = document.getElementById(checkboxId)
+        if (checkbox && !checkbox.control) {
+          Object.defineProperty(checkbox, 'control', {
+            get: () => checkbox,
+            configurable: true,
+            enumerable: false
+          })
+        }
+      })
+    }
+  })
+}
 
 async function initializeTomSelectForGenre() {
   await nextTick()
@@ -230,6 +297,9 @@ onBeforeUnmount(() => {
     }
   })
   tomSelectInstances.value.clear()
+
+  // Retirer le gestionnaire d'événements global
+  document.removeEventListener('focusin', focusInHandler, true)
 })
 
 

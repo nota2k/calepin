@@ -240,6 +240,51 @@ async function getAllPagesFromDatabase(databaseId) {
 }
 
 /**
+ * Récupère uniquement les métadonnées d'une base de données (sans les pages)
+ */
+async function getDatabaseMetadata(databaseName) {
+  try {
+    const database = await getDatabaseByName(databaseName)
+    if (!database) {
+      return null
+    }
+
+    const pageCount = await getDatabasePageCount(database.id)
+
+    return {
+      id: database.id,
+      pageCount: pageCount,
+      lastEditedTime: database.last_edited_time
+    }
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des métadonnées de "${databaseName}":`, error)
+    return null
+  }
+}
+
+/**
+ * Récupère les métadonnées de toutes les bases de données cibles
+ */
+export async function getDatabasesMetadata() {
+  try {
+    const targetDatabases = ['Calepin musique', 'Calepin web']
+    const metadata = {}
+
+    for (const dbName of targetDatabases) {
+      const meta = await getDatabaseMetadata(dbName)
+      if (meta) {
+        metadata[meta.id] = meta
+      }
+    }
+
+    return metadata
+  } catch (error) {
+    console.error('Erreur lors de la récupération des métadonnées:', error)
+    return {}
+  }
+}
+
+/**
  * Récupère le nombre de pages dans une base de données
  */
 async function getDatabasePageCount(databaseId) {

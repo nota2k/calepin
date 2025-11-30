@@ -440,13 +440,65 @@ async function getDatabaseMetadata(databaseName) {
 
     const pageCount = await getDatabasePageCount(database.id)
 
+    // Récupérer le last_edited_time le plus récent de toutes les pages
+    // pour détecter les modifications de pages individuelles
+    let latestPageEditTime = database.last_edited_time
+    try {
+      // Récupérer un échantillon de pages (sans tri, car last_edited_time n'est pas une propriété triable)
+      const queryData = await notionRequest(`/databases/${database.id}/query`, {
+        method: 'POST',
+        body: JSON.stringify({
+          page_size: 100
+        })
+      })
+
+      const pages = queryData.results || []
+      // Trouver le last_edited_time le plus récent parmi toutes les pages récupérées
+      for (const page of pages) {
+        if (page.last_edited_time && (!latestPageEditTime || new Date(page.last_edited_time) > new Date(latestPageEditTime))) {
+          latestPageEditTime = page.last_edited_time
+        }
+      }
+
+      // Si on a plus de 100 pages, récupérer les suivantes pour être sûr de trouver le plus récent
+      let hasMore = queryData.has_more || false
+      let nextCursor = queryData.next_cursor || null
+      let iterations = 0
+      const maxIterations = 5 // Limiter à 500 pages pour éviter trop de requêtes
+
+      while (hasMore && iterations < maxIterations) {
+        const nextQueryData = await notionRequest(`/databases/${database.id}/query`, {
+          method: 'POST',
+          body: JSON.stringify({
+            page_size: 100,
+            start_cursor: nextCursor
+          })
+        })
+
+        const nextPages = nextQueryData.results || []
+        for (const page of nextPages) {
+          if (page.last_edited_time && (!latestPageEditTime || new Date(page.last_edited_time) > new Date(latestPageEditTime))) {
+            latestPageEditTime = page.last_edited_time
+          }
+        }
+
+        hasMore = nextQueryData.has_more || false
+        nextCursor = nextQueryData.next_cursor || null
+        iterations++
+      }
+    } catch (err) {
+      // console.warn(`Impossible de récupérer le last_edited_time des pages pour ${databaseName}:`, err.message)
+      // Utiliser le last_edited_time de la base de données en fallback
+    }
+
     return {
       id: database.id,
       pageCount: pageCount,
-      lastEditedTime: database.last_edited_time
+      lastEditedTime: database.last_edited_time,
+      latestPageEditTime: latestPageEditTime // Le last_edited_time le plus récent des pages
     }
   } catch (error) {
-    console.error(`Erreur lors de la récupération des métadonnées de "${databaseName}":`, error)
+    // console.error(`Erreur lors de la récupération des métadonnées de "${databaseName}":`, error)
     return null
   }
 }
@@ -477,7 +529,7 @@ export async function getDatabasesMetadata() {
 
     return metadata
   } catch (error) {
-    console.error('Erreur lors de la récupération des métadonnées:', error)
+    // console.error('Erreur lors de la récupération des métadonnées:', error)
     return {}
   }
 }
@@ -523,7 +575,7 @@ async function getDatabasePageCount(databaseId) {
 
     return pageCount
   } catch (error) {
-    console.warn(`Impossible de compter les pages pour ${databaseId}:`, error.message)
+    // console.warn(`Impossible de compter les pages pour ${databaseId}:`, error.message)
     return 0
   }
 }
@@ -556,7 +608,7 @@ async function getDatabaseCardInfo(databaseName) {
     const database = await getDatabaseByName(databaseName)
 
     if (!database) {
-      console.warn(`Base de données "${databaseName}" non trouvée`)
+      // console.warn(`Base de données "${databaseName}" non trouvée`)
       return null
     }
 
@@ -656,7 +708,7 @@ async function getDatabaseCardInfo(databaseName) {
       properties: Object.keys(properties) // Liste des noms de propriétés
     }
   } catch (error) {
-    console.error(`Erreur lors de la récupération de "${databaseName}":`, error)
+    // console.error(`Erreur lors de la récupération de "${databaseName}":`, error)
     return null
   }
 }
@@ -721,12 +773,12 @@ function transformPageToCard(page, databaseInfo = null) {
   if (page.properties) {
     // Debug: afficher toutes les propriétés pour voir si "Note" existe
     if (!window._debugNoteShown) {
-      console.log('🔍 Toutes les propriétés disponibles:', Object.keys(page.properties))
-      console.log('🔍 Détails des propriétés:', Object.entries(page.properties).map(([key, prop]) => ({
-        key,
-        type: prop.type,
-        value: prop.value
-      })))
+      // console.log('🔍 Toutes les propriétés disponibles:', Object.keys(page.properties))
+      // console.log('🔍 Détails des propriétés:', Object.entries(page.properties).map(([key, prop]) => ({
+      //   key,
+      //   type: prop.type,
+      //   value: prop.value
+      // })))
       window._debugNoteShown = true
     }
 
@@ -736,7 +788,7 @@ function transformPageToCard(page, databaseInfo = null) {
 
       // Debug: vérifier spécifiquement "Note"
       if (keyLower.includes('note')) {
-        console.log('✅ Propriété contenant "note" trouvée:', { key, type: prop.type, value: prop.value, cardTitre: card.titre || card.id })
+        // console.log('✅ Propriété contenant "note" trouvée:', { key, type: prop.type, value: prop.value, cardTitre: card.titre || card.id })
       }
 
       if (keyLower === 'titre' && prop.type === 'title' && prop.value) {
@@ -770,9 +822,9 @@ function transformPageToCard(page, databaseInfo = null) {
         // Vérifier d'abord si la propriété existe et a une valeur
         if (prop.value && typeof prop.value === 'string' && prop.value.trim() !== '') {
           card.note = prop.value
-          console.log('📝 Note extraite pour', card.titre || card.id + ':', card.note)
+          // console.log('📝 Note extraite pour', card.titre || card.id + ':', card.note)
         } else {
-          console.log('⚠️ Note trouvée mais vide pour', card.titre || card.id + ':', { value: prop.value, type: typeof prop.value })
+          // console.log('⚠️ Note trouvée mais vide pour', card.titre || card.id + ':', { value: prop.value, type: typeof prop.value })
         }
       }
       else if (keyLower === 'like' && prop.type === 'checkbox') {

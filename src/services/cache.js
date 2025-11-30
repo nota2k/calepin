@@ -1,6 +1,6 @@
 const CACHE_KEY = 'notion_cards_cache'
 const CACHE_METADATA_KEY = 'notion_cache_metadata'
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes en millisecondes (réduit pour permettre les mises à jour)
+const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 heures en millisecondes
 
 /**
  * Récupère les cards en cache depuis le localStorage
@@ -106,23 +106,59 @@ export function setCachedMetadata(metadata) {
 export function hasDatabasesChanged(currentMetadata) {
   const cachedMetadata = getCachedMetadata()
 
-  if (!cachedMetadata) return true
+  if (!cachedMetadata) {
+    console.log('📊 Pas de métadonnées en cache, changement détecté')
+    return true
+  }
 
   // Comparer les métadonnées de chaque base de données
   for (const [dbId, currentMeta] of Object.entries(currentMetadata)) {
     const cachedMeta = cachedMetadata[dbId]
 
-    if (!cachedMeta) return true // Nouvelle base de données
+    if (!cachedMeta) {
+      console.log(`📊 Nouvelle base de données détectée: ${dbId}, changement détecté`)
+      return true // Nouvelle base de données
+    }
 
-    // Vérifier si le nombre de pages a changé ou si la date de modification est plus récente
-    if (
-      currentMeta.pageCount !== cachedMeta.pageCount ||
-      new Date(currentMeta.lastEditedTime) > new Date(cachedMeta.lastEditedTime)
-    ) {
+    // Vérifier si le nombre de pages a changé
+    if (currentMeta.pageCount !== cachedMeta.pageCount) {
+      console.log(`📊 Nombre de pages changé pour ${dbId}: ${cachedMeta.pageCount} → ${currentMeta.pageCount}`)
+      return true
+    }
+
+    // Vérifier si la date de modification de la base de données est plus récente
+    const currentDate = new Date(currentMeta.lastEditedTime)
+    const cachedDate = new Date(cachedMeta.lastEditedTime)
+    if (currentDate > cachedDate) {
+      console.log(`📊 Date de modification de la DB changée pour ${dbId}: ${cachedMeta.lastEditedTime} → ${currentMeta.lastEditedTime}`)
+      return true
+    }
+
+    // Vérifier si le last_edited_time le plus récent des pages a changé
+    // Cela détecte les modifications de pages individuelles même si la DB n'a pas changé
+    if (currentMeta.latestPageEditTime && cachedMeta.latestPageEditTime) {
+      const currentPageDate = new Date(currentMeta.latestPageEditTime)
+      const cachedPageDate = new Date(cachedMeta.latestPageEditTime)
+      if (currentPageDate > cachedPageDate) {
+        console.log(`📊 Date de modification de page changée pour ${dbId}: ${cachedMeta.latestPageEditTime} → ${currentMeta.latestPageEditTime}`)
+        return true
+      }
+    } else if (currentMeta.latestPageEditTime && !cachedMeta.latestPageEditTime) {
+      // Si on a maintenant latestPageEditTime mais pas avant, c'est un changement
+      console.log(`📊 Nouvelle détection de modification de page pour ${dbId}`)
       return true
     }
   }
 
+  // Vérifier aussi si une base de données a été supprimée
+  for (const dbId of Object.keys(cachedMetadata)) {
+    if (!currentMetadata[dbId]) {
+      console.log(`📊 Base de données supprimée: ${dbId}, changement détecté`)
+      return true
+    }
+  }
+
+  console.log('📊 Aucun changement détecté dans les métadonnées')
   return false
 }
 

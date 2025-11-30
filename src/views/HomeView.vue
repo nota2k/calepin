@@ -146,29 +146,44 @@ async function checkForUpdates() {
   try {
     isRefreshing.value = true
 
+    // Vérifier d'abord si le cache est toujours valide
+    const cachedCards = getCachedCards()
+    if (!cachedCards || cachedCards.length === 0) {
+      console.log('🔄 Pas de cache valide, chargement des données...')
+      await loadCards()
+      return
+    }
+
+    // Vérifier l'âge du cache pour forcer un rechargement périodique
+    const cacheData = JSON.parse(localStorage.getItem('notion_cards_cache') || '{}')
+    const cacheAge = Date.now() - (cacheData.timestamp || 0)
+    const REFRESH_INTERVAL = 30 * 60 * 1000 // 30 minutes pour forcer un rafraîchissement périodique
+
     // Récupérer les métadonnées actuelles
     const currentMetadata = await getDatabasesMetadata()
 
-    // Vérifier si quelque chose a changé
-    if (hasDatabasesChanged(currentMetadata)) {
+    // Vérifier si quelque chose a changé ou si le cache est ancien
+    const hasChanged = hasDatabasesChanged(currentMetadata)
+    const shouldRefresh = cacheAge > REFRESH_INTERVAL
+
+    if (hasChanged) {
       console.log('🔄 Nouvelles données détectées, rechargement...')
       await loadCards()
+    } else if (shouldRefresh) {
+      console.log('🔄 Cache ancien (>30min), rechargement périodique...')
+      await loadCards()
     } else {
-      console.log('✅ Données à jour, pas de rechargement nécessaire')
-      // Forcer un rechargement périodique même si les métadonnées n'ont pas changé
-      // pour s'assurer que les propriétés comme "Note" sont à jour
-      const cachedCards = getCachedCards()
-      if (cachedCards) {
-        const cacheAge = Date.now() - (JSON.parse(localStorage.getItem('notion_cards_cache'))?.timestamp || 0)
-        // Recharger si le cache a plus de 5 minutes
-        if (cacheAge > 5 * 60 * 1000) {
-          console.log('🔄 Cache ancien, rechargement...')
-          await loadCards()
-        }
-      }
+      console.log('✅ Données à jour, utilisation du cache')
+      // Les données sont à jour, utiliser le cache existant
+      cards.value = cachedCards
     }
   } catch (err) {
     console.error('Erreur lors de la vérification des mises à jour:', err)
+    // En cas d'erreur, essayer d'utiliser le cache si disponible
+    const cachedCards = getCachedCards()
+    if (cachedCards && cachedCards.length > 0) {
+      cards.value = cachedCards
+    }
   } finally {
     isRefreshing.value = false
   }

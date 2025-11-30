@@ -127,7 +127,6 @@ p{
 }
 
 .group{
-  height: fit-content;
   h2,h3,h4,h5,h6{
     font-family: 'MistralSCITC', sans-serif;
     font-size: 1.8rem;
@@ -210,12 +209,14 @@ input,select{
   svg{
     width: 25px;
     height: 25px;
+    color:yellow;
+    stroke:black;
   }
 }
 
 .note{
   box-shadow: 0 3px 5px 0 rgb(33 26 4 / 40%);
-  margin:0 auto 0.8rem auto;
+  margin:1rem auto 0.8rem auto;
   max-width: 90%;
   width: 100%;
 

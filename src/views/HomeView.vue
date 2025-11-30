@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { fetchMultipleNotionDatabases, getDatabasesMetadata } from '@/services/notion'
 import { getCachedCards, setCachedCards, setCachedMetadata, hasDatabasesChanged, clearCache } from '@/services/cache'
 import CardGrid from '@/components/CardGrid.vue'
@@ -12,9 +12,79 @@ const viewMode = ref('grid') // 'grid' ou 'list'
 const isRefreshing = ref(false) // Pour indiquer un rafraîchissement en arrière-plan
 const selectedGenre = ref(null) // Genre sélectionné pour le filtre
 const selectedSource = ref(null) // Source sélectionnée pour le filtre
+let resizeObserver = null
+let resizeTimeout = null
 
 function toggleViewMode() {
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+}
+
+// Script masonry personnalisé
+function initMasonryLayout() {
+  if (viewMode.value !== 'grid') {
+    return
+  }
+
+  nextTick(() => {
+    const container = document.querySelector('.masonry-grid')
+    if (!container) return
+
+    const items = Array.from(container.children)
+    if (items.length === 0) return
+
+    // Configuration
+    const gap = 20 // Espacement entre les cards (en pixels)
+    const minColumnWidth = 250 // Largeur minimale d'une colonne
+    const containerWidth = container.offsetWidth
+
+    // Calculer le nombre de colonnes optimal
+    let columnCount = Math.floor((containerWidth + gap) / (minColumnWidth + gap))
+    columnCount = Math.max(1, Math.min(4, columnCount)) // Entre 1 et 4 colonnes
+
+    // Réinitialiser le positionnement
+    items.forEach(item => {
+      item.style.position = 'absolute'
+      item.style.width = `${(containerWidth - (gap * (columnCount - 1))) / columnCount}px`
+      item.style.opacity = '0'
+    })
+
+    // Tableau pour suivre la hauteur de chaque colonne
+    const columnHeights = new Array(columnCount).fill(0)
+
+    // Positionner chaque item dans la colonne la plus courte
+    items.forEach((item) => {
+      // Trouver la colonne la plus courte
+      const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights))
+
+      // Calculer la position
+      const left = shortestColumnIndex * (item.offsetWidth + gap)
+      const top = columnHeights[shortestColumnIndex]
+
+      // Positionner l'item
+      item.style.left = `${left}px`
+      item.style.top = `${top}px`
+      item.style.opacity = '1'
+      item.style.transition = 'opacity 0.3s ease'
+
+      // Mettre à jour la hauteur de la colonne
+      columnHeights[shortestColumnIndex] += item.offsetHeight + gap
+    })
+
+    // Ajuster la hauteur du conteneur
+    const maxHeight = Math.max(...columnHeights)
+    container.style.height = `${maxHeight}px`
+    container.style.position = 'relative'
+  })
+}
+
+// Fonction pour gérer le redimensionnement avec debounce
+function handleResize() {
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout)
+  }
+  resizeTimeout = setTimeout(() => {
+    initMasonryLayout()
+  }, 250)
 }
 
 // Fonction helper pour extraire la source d'une card (même logique que sourceDisplay)
@@ -189,6 +259,11 @@ async function checkForUpdates() {
   }
 }
 
+// Watcher pour réinitialiser la grille quand les cards ou le mode changent
+watch([filteredCards, viewMode], () => {
+  initMasonryLayout()
+}, { deep: true })
+
 onMounted(async () => {
   try {
     loading.value = true
@@ -212,6 +287,36 @@ onMounted(async () => {
     console.error('Erreur lors du chargement:', err)
     cards.value = []
     loading.value = false
+  }
+
+  // Initialiser la grille masonry après le chargement
+  nextTick(() => {
+    initMasonryLayout()
+  })
+
+  // Écouter le redimensionnement de la fenêtre
+  window.addEventListener('resize', handleResize)
+
+  // Observer les changements de taille du conteneur
+  nextTick(() => {
+    const container = document.querySelector('.masonry-grid')
+    if (container && window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize()
+      })
+      resizeObserver.observe(container)
+    }
+  })
+})
+
+onUnmounted(() => {
+  // Nettoyer les event listeners
+  window.removeEventListener('resize', handleResize)
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  }
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout)
   }
 })
 </script>
@@ -329,8 +434,7 @@ onMounted(async () => {
     </div>
 
     <!-- Vue grille -->
-    <div v-else-if="filteredCards.length > 0 && viewMode === 'grid'"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    <div v-else-if="filteredCards.length > 0 && viewMode === 'grid'" class="masonry-grid">
       <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" view-mode="grid" />
     </div>
 

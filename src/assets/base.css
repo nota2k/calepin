@@ -127,6 +127,7 @@ p{
 }
 
 .group{
+  height:fit-content;
   h2,h3,h4,h5,h6{
     font-family: 'MistralSCITC', sans-serif;
     font-size: 1.8rem;
@@ -224,4 +225,15 @@ input,select{
     font-size: 1.5rem;
     line-height: 1;
   }
+}
+
+/* Styles pour la grille masonry personnalisée */
+.masonry-grid {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+}
+
+.masonry-grid > * {
+  transition: opacity 0.3s ease;
 }

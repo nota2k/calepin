@@ -201,7 +201,7 @@ const emit = defineEmits(['page-created'])
 
 <template>
   <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4">Créer une nouvelle page</h2>
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Créer une nouvelle entrée</h2>
 
     <!-- Message de succès -->
     <div v-if="success" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
@@ -240,7 +240,7 @@ const emit = defineEmits(['page-created'])
 
       <!-- Champs dynamiques selon la base de données -->
       <div v-if="selectedDatabaseId && !loading && formFields.length > 0"
-        class="space-y-4 border-t pt-4 flex items-center justify-between flex-wrap gap-2">
+        class="border-t pt-4 flex items-center justify-between flex-wrap gap-2">
         <div v-for="field in formFields" :key="field.key" :class="[
           'space-y-2',
           (field.name.toLowerCase() === 'artiste' || field.name.toLowerCase() === 'titre') ? 'w-full' : 'grow-2 min-w-2/54'

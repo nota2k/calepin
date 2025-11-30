@@ -11,9 +11,9 @@ defineProps({
   <a :href="card.url" target="_blank" rel="noopener noreferrer"
     class="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex items-center gap-4 p-4 group">
     <!-- Header avec le nom de la base de données (vertical) -->
-    <div class="flex-shrink-0 w-32 text-white py-4 px-3 font-medium rounded-lg text-center"
-      :style="{ backgroundColor: card.databaseColor }">
-      <span class="text-slate-700 font-semibold text-sm">{{ card.databaseName }}</span>
+    <div class="flex-shrink-0 w-32 py-4 px-3 font-medium rounded-lg text-center">
+      <span class="text-slate-700 font-semibold text-sm highlight"
+        :style="{ '--highlight-color': card.databaseColor }">{{ card.databaseName }}</span>
     </div>
 
     <!-- Contenu principal -->

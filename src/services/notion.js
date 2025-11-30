@@ -391,21 +391,19 @@ async function getDatabaseCardInfo(databaseName) {
     // Définir une couleur et une icône par défaut selon le nom
     let color = 'bg-gray-600'
     let headerColor = '#6B7280' // Gris par défaut
-    let icon = '📊'
     let displayName = databaseName
 
     if (databaseName.toLowerCase().includes('musique')) {
       headerColor = 'rgb(255 222 98)' // Rouge-brun pour Musique
       color = 'bg-[#8B4513]'
-      icon = database.icon || '🎵'
       displayName = 'Musique'
     } else if (databaseName.toLowerCase().includes('web')) {
       headerColor = 'rgb(39 150 231)' // Jaune-vert pour Web
       color = 'bg-[#9ACD32]'
-      icon = database.icon || '🌐'
       displayName = 'Web'
     } else {
-      icon = database.icon || icon
+      headerColor = 'var(--highlight-color)'
+      color = 'var(--highlight-color)'
     }
 
     // Formater la date de dernière modification

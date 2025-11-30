@@ -9,11 +9,12 @@ defineProps({
 
 <template>
   <a :href="card.url" target="_blank" rel="noopener noreferrer"
-    class="bg-gray-100 rounded-b-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[200px] group">
+    class="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[100px] group border border-gray-900 border-2">
     <!-- Header avec le nom de la base de données -->
-    <div class="database flex items-center justify-between text-white py-3 px-4 font-medium"
-      :style="{ backgroundColor: card.databaseColor }">
-      <span class="text-slate-700 font-semibold">{{ card.databaseName }}</span>
+    <div class="database flex items-center justify-between py-2 px-4 font-medium">
+      <span class="text-xl text-slate-700 font-semibold highlight text-2xl"
+        :style="{ '--highlight-color': card.databaseColor }">{{
+          card.databaseName }}</span>
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
         class="lucide lucide-circle-play-icon lucide-circle-play">
@@ -23,11 +24,11 @@ defineProps({
     </div>
 
     <!-- Corps de la card -->
-    <div class="p-6 flex flex-col justify-between flex-1">
+    <div class="p-2 flex flex-col justify-between flex-1">
       <div class="flex-1">
         <!-- Titre -->
-        <div class="flex items-baseline justify-start gap-2 border-b border-slate-400 pb-1 mb-4">
-          <h3 class="text-xl font-normal text-black mb-2 text-slate-500">{{ card.titre }}<strong v-if="card.artiste"
+        <div class="flex items-baseline justify-start gap-2 border-b border-slate-400 mb-3">
+          <h3 class="text-3xl font-normal text-black mb-2 text-slate-500">{{ card.titre }}<strong v-if="card.artiste"
               class="text-xl font-bold text-black mb-3 text-slate-700"> - {{
                 card.artiste }}</strong></h3>
 
@@ -36,7 +37,7 @@ defineProps({
         </div>
         <!-- Genre (tag rouge) -->
         <span v-if="card.genre" :class="[
-          'inline-block bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium',
+          'inline-block bg-red-500 text-white px-3 py-1 rounded-full text-lg font-medium genre-tag',
           card.genreClass ? `${card.genreClass}` : ''
         ]">
           {{ card.genre }}

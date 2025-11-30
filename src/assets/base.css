@@ -2,14 +2,105 @@
 @import "tailwindcss/preflight" layer(base);
 @import "tailwindcss/utilities" layer(utilities);
 
+:root {
+  --kraut-rock-color: #c15151;
+  --italo-disco-color: #99a941;
+  --post-punk-color: #424283;
+
+  /* Couleurs des bases de données */
+  --database-musique-color: rgb(255 222 98);
+  --database-web-color: rgb(39 150 231);
+}
+
+@font-face {
+  font-family: 'Dasha';
+  src: url('../assets/fonts/Dasha.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LTWiesbadenSwing';
+  src: url('./LTWiesbadenSwing-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LTWiesbadenSwing';
+  src: url('./LTWiesbadenSwing-bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: bold;
+}
+
+@font-face {
+  font-family: 'MistralSCITC';
+  src: url('./MistralSCITC-light.TTF') format('truetype');
+  font-weight: 400;
+  font-style: light;
+}
+
+@font-face {
+  font-family: 'MistralSCITC';
+  src: url('./MistralSCITC-bold.TTF') format('truetype');
+  font-weight: 700;
+  font-style: bold;
+}
+
+p,span{
+  font-family: 'MistralSCITC', sans-serif;
+  line-height: 1.2;
+  margin-bottom: 0;
+}
+
 .kraut-rock {
-  background-color: #c15151;
+  --highlight-color: var(--kraut-rock-color);
+  background-color: var(--kraut-rock-color);
 }
 
 .italo-disco {
-  background-color: #99a941;
+  --highlight-color: var(--italo-disco-color);
+  background-color: var(--italo-disco-color);
 }
 
 .post-punk {
-  background-color: #424283;
+  --highlight-color: var(--post-punk-color);
+  background-color: var(--post-punk-color);
+}
+
+.highlight {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  rotate: -2deg;
+  justify-content: center;
+  font-size: 1.7rem;
+}
+
+.highlight::after {
+  content: '';
+  position: absolute;
+  width: 180%;
+  margin-top:2px;
+  left: -8px;
+  rotate: -5deg;
+  height: 110%;
+  border-radius: 15px;
+  box-shadow:inset 0px 2px 15px 0 rgba(255, 255, 255, 1);
+  z-index: -1;
+  background: linear-gradient(180deg,rgba(255, 255, 255, 1) 0%,var(--highlight-color) 40%, rgba(255, 255, 255, 1) 60%);
+}
+
+.genre-tag {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8rem;
+}
+
+.group{
+  h2,h3,h4,h5,h6{
+    font-family: 'MistralSCITC', sans-serif;
+    font-size: 1.8rem;
+    line-height: 1.2;
+    margin-bottom: 0;
+  }
 }

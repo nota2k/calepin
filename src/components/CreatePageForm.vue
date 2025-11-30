@@ -202,7 +202,7 @@ const emit = defineEmits(['page-created'])
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <div class="p-6 mb-8">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Créer une nouvelle entrée</h2>
 
     <!-- Message de succès -->

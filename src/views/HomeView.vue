@@ -122,7 +122,6 @@ onMounted(async () => {
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Bienvenue</h1>
-        <p class="text-gray-600">Découvrez nos fonctionnalités</p>
       </div>
     </div>
 

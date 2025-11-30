@@ -47,6 +47,18 @@
   font-style: bold;
 }
 
+#app{
+  position: relative;
+}
+
+.bg-texture{
+  background:url('../assets/paper-texture.jpg') repeat center center;
+  background-size: 80%;
+  background-position: top left;
+  filter: brightness(1.1);
+  top: 0;
+}
+
 p{
   font-family: 'MistralSCITC', sans-serif;
   line-height: 1.2;

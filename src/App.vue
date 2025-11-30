@@ -101,4 +101,6 @@ import { RouterLink, RouterView } from 'vue-router'
       </div>
     </footer>
   </div>
+  <div class="absolute top-0 left-0 w-full h-full bg-texture z-[-1]"></div>
+
 </template>

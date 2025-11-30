@@ -151,16 +151,16 @@ onMounted(async () => {
         <button @click="selectedGenre = null" :class="[
           'px-3 py-1 rounded-full text-sm font-medium transition-colors',
           selectedGenre === null
-            ? 'bg-gray-800 text-white'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ? 'bg-teal-700 text-white'
+            : 'bg-teal-700 text-teal-700 hover:bg-teal-200'
         ]">
           Tous
         </button>
         <button v-for="genre in availableGenres" :key="genre" @click="toggleGenre(genre)" :class="[
           'px-3 py-1 rounded-full text-sm font-medium transition-colors',
           selectedGenre === genre
-            ? 'bg-red-500 text-white'
-            : 'bg-red-100 text-red-700 hover:bg-red-200'
+            ? 'bg-teal-200 text-white'
+            : 'bg-teal-200 text-teal-700 hover:bg-teal-200'
         ]">
           {{ genre }}
         </button>

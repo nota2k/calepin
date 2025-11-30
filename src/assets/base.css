@@ -88,6 +88,7 @@
   }
 }
 
+
 p{
   font-family: 'MistralSCITC', sans-serif;
   line-height: 1.2;
@@ -100,9 +101,9 @@ p{
   align-items: center;
   rotate: -2deg;
   justify-content: center;
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-family: 'MistralSCITC', sans-serif;
-  line-height: 1.2;
+  line-height: 0.8;
   margin-bottom: 0;
 }
 
@@ -188,7 +189,7 @@ input,select{
   }
 
   .item{
-    background: rgb(163, 214, 201)!important;
+    background: oklch(91% 0.096 180.426)!important;
     border-radius: 2.2rem!important;
     padding: 0.1rem 0.6rem!important;
   }

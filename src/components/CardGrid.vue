@@ -28,7 +28,7 @@ const sourceDisplay = computed(() => {
     class="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[100px] group border border-gray-900 border-1">
     <!-- Header avec le nom de la base de données -->
     <div class="database flex items-center justify-between py-4 px-4 font-medium">
-      <span class="text-xl text-slate-700 font-semibold highlight text-2xl"
+      <span class="text-slate-700 font-semibold highlight text-3xl"
         :style="{ '--highlight-color': card.databaseColor }">{{
           card.databaseName }}</span>
       <div class="flex items-center gap-2">
@@ -55,7 +55,7 @@ const sourceDisplay = computed(() => {
         <!-- Titre -->
         <div class="flex items-baseline justify-start gap-2 border-b border-slate-400 mb-3">
           <h3 class="text-3xl font-normal text-black mb-2 text-slate-500">{{ card.titre }}<strong v-if="card.artiste"
-              class="text-xl font-bold text-black mb-3 text-slate-700"> - {{
+              class="text-3xl font-bold text-black mb-3 text-slate-700"> - {{
                 card.artiste }}</strong></h3>
 
           <!-- Artiste (si disponible) -->

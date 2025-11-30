@@ -6,9 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 /* eslint-env node */
-export default defineConfig(({ mode }) => {
-
-  return {
+export default defineConfig({
   plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
@@ -34,6 +32,5 @@ export default defineConfig(({ mode }) => {
         }
       }
     }
-  }
   }
 })

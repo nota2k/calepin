@@ -14,20 +14,20 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const app = express()
- 
+
 const PORT = process.env.PORT || 3000
 
 // Middleware pour parser le JSON
 app.use(express.json())
 
 // Récupérer la clé API Notion depuis les variables d'environnement
- 
+
 const NOTION_SECRET = process.env.NOTION_SECRET || process.env.VITE_NOTION_SECRET
 
 if (!NOTION_SECRET) {
   console.error('❌ ERREUR: NOTION_SECRET ou VITE_NOTION_SECRET n\'est pas défini')
   console.error('   Veuillez définir cette variable d\'environnement avant de démarrer le serveur')
-   
+
   process.exit(1)
 }
 
@@ -36,9 +36,19 @@ if (!NOTION_SECRET) {
  */
 app.use('/api/notion', async (req, res) => {
   try {
-    // Extraire le chemin de l'endpoint Notion
-    const notionPath = req.path.replace(/^\/api\/notion/, '') || req.path
-    const endpoint = notionPath.startsWith('/') ? notionPath : `/${notionPath}`
+    // Extraire le chemin de l'endpoint Notion depuis l'URL originale
+    // req.path contient le chemin après /api/notion
+    let endpoint = req.path
+
+    // Si le chemin commence par /api/notion, l'enlever
+    if (endpoint.startsWith('/api/notion')) {
+      endpoint = endpoint.replace(/^\/api\/notion/, '')
+    }
+
+    // S'assurer que l'endpoint commence par /
+    if (!endpoint.startsWith('/')) {
+      endpoint = `/${endpoint}`
+    }
 
     // Construire l'URL complète de l'API Notion
     let notionUrl = `https://api.notion.com/v1${endpoint}`
@@ -96,7 +106,7 @@ app.use('/api/notion', async (req, res) => {
 })
 
 // Servir les fichiers statiques en production
- 
+
 if (process.env.NODE_ENV === 'production') {
   const distPath = join(__dirname, 'dist')
   app.use(express.static(distPath))
@@ -111,7 +121,7 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`)
   console.log(`📡 Proxy API Notion disponible sur /api/notion`)
-   
+
   if (process.env.NODE_ENV === 'production') {
     console.log(`📦 Servant les fichiers statiques depuis /dist`)
   }

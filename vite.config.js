@@ -2,26 +2,14 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 /* eslint-env node */
 export default defineConfig(({ mode }) => {
 
-  const isDev = mode === 'development'
-  // eslint-disable-next-line no-undef
-  const enableDevTools = process.env.ENABLE_DEVTOOLS !== 'false'
-
-  const plugins = [vue(), tailwindcss()]
-
-  // Ajouter vueDevTools uniquement en développement si activé
-  if (isDev && enableDevTools) {
-    plugins.push(vueDevTools())
-  }
-
   return {
-  plugins,
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -39,7 +27,6 @@ export default defineConfig(({ mode }) => {
   },
   build: {
     // Options de build optimisées
-    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {

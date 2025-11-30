@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { listAllNotionDatabases, getDatabaseProperties, createPageInDatabase } from '@/services/notion'
+import TomSelect from 'tom-select'
+import 'tom-select/dist/css/tom-select.css'
 
 const databases = ref([])
 const selectedDatabaseId = ref('')
@@ -9,6 +11,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const error = ref(null)
 const success = ref(false)
+const tomSelectInstances = ref(new Map())
 
 const selectedDatabase = computed(() => {
   return databases.value.find(db => db.id === selectedDatabaseId.value)
@@ -56,11 +59,27 @@ watch(selectedDatabaseId, async (newId) => {
   if (!newId) {
     databaseProperties.value = {}
     formData.value = {}
+    // Détruire toutes les instances TomSelect
+    tomSelectInstances.value.forEach(instance => {
+      if (instance && instance.destroy) {
+        instance.destroy()
+      }
+    })
+    tomSelectInstances.value.clear()
     return
   }
 
   try {
     loading.value = true
+
+    // Détruire toutes les instances TomSelect existantes avant de charger une nouvelle base
+    tomSelectInstances.value.forEach(instance => {
+      if (instance && instance.destroy) {
+        instance.destroy()
+      }
+    })
+    tomSelectInstances.value.clear()
+
     databaseProperties.value = await getDatabaseProperties(newId)
 
     // Initialiser les champs du formulaire selon leur type
@@ -71,16 +90,146 @@ watch(selectedDatabaseId, async (newId) => {
         formData.value[key] = []
       } else if (prop.type === 'checkbox') {
         formData.value[key] = false
+      } else if (prop.type === 'select' && key.toLowerCase() === 'genre') {
+        // Le champ genre avec TomSelect stocke un tableau pour permettre la sélection multiple
+        formData.value[key] = []
       } else {
         formData.value[key] = ''
       }
     })
+
+    // Initialiser TomSelect pour le champ genre après le rendu
+    await nextTick()
+    await nextTick() // Double nextTick pour s'assurer que le DOM est complètement rendu
+    // Petit délai pour garantir que le DOM est complètement prêt
+    setTimeout(() => {
+      initializeTomSelectForGenre()
+    }, 150)
   } catch (err) {
     error.value = 'Impossible de charger les propriétés de la base de données'
     console.error(err)
   } finally {
     loading.value = false
   }
+})
+
+async function initializeTomSelectForGenre() {
+  await nextTick()
+
+  // Trouver le champ genre (peut être select ou multi_select)
+  const genreField = formFields.value.find(
+    field => field.name.toLowerCase() === 'genre' && (field.type === 'select' || field.type === 'multi_select')
+  )
+
+  if (!genreField) return
+
+  const inputElement = document.getElementById(genreField.key)
+  if (!inputElement) {
+    // Retry après un court délai si l'élément n'est pas encore dans le DOM
+    setTimeout(() => initializeTomSelectForGenre(), 50)
+    return
+  }
+
+  // Ajouter des propriétés pour éviter les erreurs des extensions de navigateur
+  if (!inputElement.control) {
+    Object.defineProperty(inputElement, 'control', {
+      get: () => inputElement,
+      configurable: true,
+      enumerable: false
+    })
+  }
+
+  // Détruire l'instance existante si elle existe dans la Map
+  if (tomSelectInstances.value.has(genreField.key)) {
+    const existingInstance = tomSelectInstances.value.get(genreField.key)
+    if (existingInstance && existingInstance.destroy) {
+      existingInstance.destroy()
+    }
+    tomSelectInstances.value.delete(genreField.key)
+  }
+
+  // Vérifier si TomSelect est déjà initialisé sur cet élément (double vérification)
+  if (inputElement.tomselect) {
+    inputElement.tomselect.destroy()
+    inputElement.tomselect = null
+  }
+
+  // Préparer les options existantes
+  const options = genreField.options ? genreField.options.map(opt => ({
+    value: opt.name,
+    text: opt.name
+  })) : []
+
+  try {
+    // S'assurer que formData est un tableau
+    if (!Array.isArray(formData.value[genreField.key])) {
+      formData.value[genreField.key] = formData.value[genreField.key] ? [formData.value[genreField.key]] : []
+    }
+
+    // Initialiser TomSelect avec sélection multiple
+    const tomSelectInstance = new TomSelect(`#${genreField.key}`, {
+      options: options,
+      items: formData.value[genreField.key] || [],
+      create: true, // Permet de créer de nouvelles options
+      createOnBlur: true, // Crée l'option lorsqu'on quitte le champ
+      delimiter: '|', // Utiliser | comme délimiteur pour éviter les conflits avec les virgules dans les valeurs
+      maxItems: null, // Permettre plusieurs sélections
+      createFilter: (input) => {
+        // Filtrer pour éviter les doublons (insensible à la casse)
+        const normalizedInput = input.trim().toLowerCase()
+        if (!normalizedInput) return false
+        return !options.some(opt => opt.value.toLowerCase() === normalizedInput)
+      },
+      plugins: ['clear_button'],
+      placeholder: 'Rechercher ou créer un genre...',
+      onItemAdd: (value) => {
+        // Ajouter la valeur au tableau
+        if (!Array.isArray(formData.value[genreField.key])) {
+          formData.value[genreField.key] = []
+        }
+        if (!formData.value[genreField.key].includes(value)) {
+          formData.value[genreField.key].push(value)
+        }
+      },
+      onItemRemove: (value) => {
+        // Retirer la valeur du tableau
+        if (Array.isArray(formData.value[genreField.key])) {
+          formData.value[genreField.key] = formData.value[genreField.key].filter(v => v !== value)
+        }
+      },
+      onChange: (value) => {
+        // Mettre à jour avec le tableau de valeurs
+        formData.value[genreField.key] = value ? (Array.isArray(value) ? value : value.split('|').filter(v => v.trim())) : []
+      }
+    })
+
+    tomSelectInstances.value.set(genreField.key, tomSelectInstance)
+
+    // Ajouter une protection après l'initialisation pour éviter les erreurs des extensions
+    const wrapper = inputElement.closest('.ts-wrapper')
+    if (wrapper) {
+      const actualInput = wrapper.querySelector('input[type="text"]')
+      if (actualInput && !actualInput.control) {
+        Object.defineProperty(actualInput, 'control', {
+          get: () => actualInput,
+          configurable: true,
+          enumerable: false
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation de TomSelect:', error)
+  }
+}
+
+onBeforeUnmount(() => {
+  // Détruire toutes les instances TomSelect lors du démontage
+  tomSelectInstances.value.forEach(instance => {
+    if (instance && instance.destroy) {
+      instance.destroy()
+    }
+  })
+  tomSelectInstances.value.clear()
 })
 
 
@@ -99,7 +248,10 @@ async function handleSubmit() {
     const properties = {}
 
     for (const [key, value] of Object.entries(formData.value)) {
-      if (!value || (typeof value === 'string' && !value.trim())) continue
+      // Ignorer les valeurs vides
+      if (!value) continue
+      if (typeof value === 'string' && !value.trim()) continue
+      if (Array.isArray(value) && value.length === 0) continue
 
       const field = formFields.value.find(f => f.key === key)
       if (!field) continue
@@ -124,11 +276,14 @@ async function handleSubmit() {
           }
           break
         case 'select':
-          if (value && prop.options) {
-            const option = prop.options.find(opt => opt.name === value)
-            if (option) {
+          if (value) {
+            // Pour un champ select, prendre la première valeur (même si c'est un tableau)
+            // Notion ne permet qu'une seule valeur pour un champ select
+            let selectValue = Array.isArray(value) ? value[0] : value
+            if (selectValue) {
+              // Notion permet de créer de nouvelles options à la volée en envoyant simplement le nom
               properties[key] = {
-                select: { name: value }
+                select: { name: selectValue }
               }
             }
           }
@@ -269,7 +424,15 @@ const emit = defineEmits(['page-created'])
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             :placeholder="`Entrez ${field.name.toLowerCase()}`" />
 
-          <!-- Champ select -->
+          <!-- Champ select pour genre avec TomSelect -->
+          <input
+            v-else-if="(field.type === 'select' || field.type === 'multi_select') && field.options && field.name.toLowerCase() === 'genre'"
+            :id="field.key" type="text" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"
+            data-form-type="other"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            :value="formData[field.key] || ''" placeholder="Rechercher ou créer un genre..." />
+
+          <!-- Champ select standard pour autres champs -->
           <select v-else-if="field.type === 'select' && field.options" :id="field.key" v-model="formData[field.key]"
             autocomplete="off" data-lpignore="true"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">

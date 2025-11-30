@@ -94,21 +94,6 @@ p{
   margin-bottom: 0;
 }
 
-.kraut-rock {
-  --highlight-color: var(--kraut-rock-color);
-  background-color: var(--kraut-rock-color);
-}
-
-.italo-disco {
-  --highlight-color: var(--italo-disco-color);
-  background-color: var(--italo-disco-color);
-}
-
-.post-punk {
-  --highlight-color: var(--post-punk-color);
-  background-color: var(--post-punk-color);
-}
-
 .highlight {
   position: relative;
   display: inline-flex;
@@ -185,3 +170,27 @@ input,select{
   background-color: #fff;
   padding: 0.5rem;
 }
+
+.ts-wrapper{
+  border: 1px solid #000;
+  border-radius: 0.2rem;
+  padding: 0;
+}
+
+.ts-control{
+  border: none;
+  border-radius: 0;
+  gap:5px;
+
+  input{
+    font-size: 16px!important;
+
+  }
+
+  .item{
+    background: rgb(163, 214, 201)!important;
+    border-radius: 2.2rem!important;
+    padding: 0.1rem 0.6rem!important;
+  }
+}
+

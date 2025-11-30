@@ -42,9 +42,17 @@ const sourceDisplay = computed(() => {
             card.artiste }}</p>
         </div>
 
-        <!-- Genre et Date -->
+        <!-- Genres et Date -->
         <div class="flex items-center gap-4">
-          <span v-if="card.genre" :class="[
+          <div v-if="card.genre && Array.isArray(card.genre) && card.genre.length > 0" class="flex flex-wrap gap-2">
+            <span v-for="(genre, index) in card.genre" :key="index" :class="[
+              'inline-block bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium',
+              card.genreClass ? `${card.genreClass}` : ''
+            ]">
+              {{ genre }}
+            </span>
+          </div>
+          <span v-else-if="card.genre && !Array.isArray(card.genre)" :class="[
             'inline-block bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium',
             card.genreClass ? `${card.genreClass}` : ''
           ]">

@@ -22,7 +22,15 @@ const availableGenres = computed(() => {
   const genres = new Set()
   cards.value.forEach(card => {
     if (card.genre) {
-      genres.add(card.genre)
+      // Si c'est un tableau, ajouter tous les genres du tableau
+      if (Array.isArray(card.genre)) {
+        card.genre.forEach(genre => {
+          if (genre) genres.add(genre)
+        })
+      } else {
+        // Si c'est une chaîne (ancien format), l'ajouter quand même
+        genres.add(card.genre)
+      }
     }
   })
   return Array.from(genres).sort()
@@ -33,7 +41,15 @@ const filteredCards = computed(() => {
   if (!selectedGenre.value) {
     return cards.value
   }
-  return cards.value.filter(card => card.genre === selectedGenre.value)
+  return cards.value.filter(card => {
+    if (!card.genre) return false
+    // Si c'est un tableau, vérifier si le genre sélectionné est dans le tableau
+    if (Array.isArray(card.genre)) {
+      return card.genre.includes(selectedGenre.value)
+    }
+    // Si c'est une chaîne (ancien format), comparer directement
+    return card.genre === selectedGenre.value
+  })
 })
 
 function toggleGenre(genre) {

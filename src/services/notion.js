@@ -695,7 +695,7 @@ function serializeForClass(value) {
  * @returns {string} returns.url - L'URL de la page (ou de la source)
  * @returns {string|null} returns.titre - Le titre extrait
  * @returns {string|null} returns.artiste - L'artiste extrait
- * @returns {string|null} returns.genre - Le genre extrait
+ * @returns {Array<string>|null} returns.genre - Le ou les genres extraits (tableau)
  * @returns {string|null} returns.genreClass - La classe CSS du genre
  * @returns {string|null} returns.dateAjoute - La date formatée (JJ/MM/AAAA)
  * @returns {string} returns.databaseName - Le nom de la base de données
@@ -731,11 +731,13 @@ function transformPageToCard(page, databaseInfo = null) {
         }
       } else if (keyLower === 'genre' && prop.value) {
         if (prop.type === 'select') {
-          card.genre = prop.value
+          // Si c'est un select simple, créer un tableau avec une seule valeur
+          card.genre = [prop.value]
           card.genreClass = serializeForClass(prop.value)
         } else if (prop.type === 'multi_select' && Array.isArray(prop.value) && prop.value.length > 0) {
-          card.genre = prop.value[0] // Prendre le premier genre
-          card.genreClass = serializeForClass(prop.value[0])
+          // Si c'est un multi_select, garder tous les genres dans un tableau
+          card.genre = prop.value
+          card.genreClass = serializeForClass(prop.value[0]) // Utiliser le premier pour la classe CSS principale
         }
       } else if (keyLower === 'source' && prop.value) {
         // Utiliser la propriété "source" comme URL

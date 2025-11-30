@@ -61,8 +61,16 @@ const sourceDisplay = computed(() => {
           <!-- Artiste (si disponible) -->
 
         </div>
-        <!-- Genre (tag rouge) -->
-        <span v-if="card.genre" :class="[
+        <!-- Genres (tags rouges) -->
+        <div v-if="card.genre && Array.isArray(card.genre) && card.genre.length > 0" class="flex flex-wrap gap-2">
+          <span v-for="(genre, index) in card.genre" :key="index" :class="[
+            'inline-block bg-teal-200 px-3 py-1 rounded-full text-lg font-medium genre-tag',
+            card.genreClass ? `${card.genreClass}` : ''
+          ]">
+            {{ genre }}
+          </span>
+        </div>
+        <span v-else-if="card.genre && !Array.isArray(card.genre)" :class="[
           'inline-block bg-red-500 text-white px-3 py-1 rounded-full text-lg font-medium genre-tag',
           card.genreClass ? `${card.genreClass}` : ''
         ]">

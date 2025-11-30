@@ -12,9 +12,33 @@ const error = ref(null)
 const viewMode = ref('grid') // 'grid' ou 'list'
 const isRefreshing = ref(false) // Pour indiquer un rafraîchissement en arrière-plan
 const selectedGenre = ref(null) // Genre sélectionné pour le filtre
+const selectedSource = ref(null) // Source sélectionnée pour le filtre
 
 function toggleViewMode() {
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+}
+
+// Fonction helper pour extraire la source d'une card (même logique que sourceDisplay)
+function getCardSource(card) {
+  if (!card.url) {
+    return card.databaseId || null
+  }
+  const urlLower = card.url.toLowerCase()
+  if (urlLower.includes('youtube')) {
+    return 'YouTube'
+  }
+  if (urlLower.includes('plex')) {
+    return 'Plex'
+  }
+  return card.databaseId || null
+}
+
+// Fonction helper pour obtenir la valeur data-source d'une source (même logique que sourceDisplay)
+function getSourceDataValue(source) {
+  if (!source) return null
+  if (source === 'YouTube') return 'youtube'
+  if (source === 'Plex') return 'plex'
+  return null
 }
 
 // Extraire tous les genres uniques depuis les cards
@@ -36,20 +60,44 @@ const availableGenres = computed(() => {
   return Array.from(genres).sort()
 })
 
-// Filtrer les cards selon le genre sélectionné
-const filteredCards = computed(() => {
-  if (!selectedGenre.value) {
-    return cards.value
-  }
-  return cards.value.filter(card => {
-    if (!card.genre) return false
-    // Si c'est un tableau, vérifier si le genre sélectionné est dans le tableau
-    if (Array.isArray(card.genre)) {
-      return card.genre.includes(selectedGenre.value)
+// Extraire toutes les sources uniques depuis les cards
+const availableSources = computed(() => {
+  const sources = new Set()
+  cards.value.forEach(card => {
+    const source = getCardSource(card)
+    if (source) {
+      sources.add(source)
     }
-    // Si c'est une chaîne (ancien format), comparer directement
-    return card.genre === selectedGenre.value
   })
+  return Array.from(sources).sort()
+})
+
+// Filtrer les cards selon le genre et la source sélectionnés
+const filteredCards = computed(() => {
+  let filtered = cards.value
+
+  // Filtrer par genre
+  if (selectedGenre.value) {
+    filtered = filtered.filter(card => {
+      if (!card.genre) return false
+      // Si c'est un tableau, vérifier si le genre sélectionné est dans le tableau
+      if (Array.isArray(card.genre)) {
+        return card.genre.includes(selectedGenre.value)
+      }
+      // Si c'est une chaîne (ancien format), comparer directement
+      return card.genre === selectedGenre.value
+    })
+  }
+
+  // Filtrer par source
+  if (selectedSource.value) {
+    filtered = filtered.filter(card => {
+      const source = getCardSource(card)
+      return source === selectedSource.value
+    })
+  }
+
+  return filtered
 })
 
 function toggleGenre(genre) {
@@ -59,6 +107,16 @@ function toggleGenre(genre) {
   } else {
     // Sélectionner le genre
     selectedGenre.value = genre
+  }
+}
+
+function toggleSource(source) {
+  if (selectedSource.value === source) {
+    // Désélectionner si déjà sélectionné
+    selectedSource.value = null
+  } else {
+    // Sélectionner la source
+    selectedSource.value = source
   }
 }
 
@@ -166,6 +224,30 @@ onMounted(async () => {
         </button>
       </div>
     </div>
+
+    <!-- Filtres par source -->
+    <div v-if="!loading && !error && availableSources.length > 0" class="mb-6">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-medium text-gray-700">Filtrer par source :</span>
+        <button @click="selectedSource = null" :class="[
+          'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+          selectedSource === null
+            ? 'bg-teal-700 text-white'
+            : 'bg-teal-700 text-teal-700 hover:bg-teal-200'
+        ]">
+          Toutes
+        </button>
+        <button v-for="source in availableSources" :key="source" @click="toggleSource(source)"
+          :data-source="getSourceDataValue(source)" :class="[
+            'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+            selectedSource === source
+              ? 'bg-teal-200 text-white'
+              : 'bg-teal-200 text-teal-700 hover:bg-teal-200'
+          ]">
+          {{ source }}
+        </button>
+      </div>
+    </div>
     <!-- Bouton de bascule vue grille/liste -->
     <div v-if="!loading && !error && cards.length > 0" class="flex justify-end items-center gap-2 mb-6">
       <button @click="toggleViewMode" class="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
@@ -238,10 +320,20 @@ onMounted(async () => {
     </div>
 
     <!-- Message si aucun résultat avec le filtre -->
-    <div v-else-if="selectedGenre && filteredCards.length === 0" class="text-center py-12 text-gray-500">
-      <p>Aucune card trouvée pour le genre "{{ selectedGenre }}".</p>
-      <button @click="selectedGenre = null" class="mt-4 text-blue-600 hover:text-blue-800 underline">
-        Afficher tous les genres
+    <div v-else-if="(selectedGenre || selectedSource) && filteredCards.length === 0"
+      class="text-center py-12 text-gray-500">
+      <p v-if="selectedGenre && selectedSource">
+        Aucune card trouvée pour le genre "{{ selectedGenre }}" et la source "{{ selectedSource }}".
+      </p>
+      <p v-else-if="selectedGenre">
+        Aucune card trouvée pour le genre "{{ selectedGenre }}".
+      </p>
+      <p v-else-if="selectedSource">
+        Aucune card trouvée pour la source "{{ selectedSource }}".
+      </p>
+      <button @click="selectedGenre = null; selectedSource = null"
+        class="mt-4 text-blue-600 hover:text-blue-800 underline">
+        Afficher tous les résultats
       </button>
     </div>
 

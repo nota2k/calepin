@@ -156,6 +156,17 @@ async function checkForUpdates() {
       await loadCards()
     } else {
       console.log('✅ Données à jour, pas de rechargement nécessaire')
+      // Forcer un rechargement périodique même si les métadonnées n'ont pas changé
+      // pour s'assurer que les propriétés comme "Note" sont à jour
+      const cachedCards = getCachedCards()
+      if (cachedCards) {
+        const cacheAge = Date.now() - (JSON.parse(localStorage.getItem('notion_cards_cache'))?.timestamp || 0)
+        // Recharger si le cache a plus de 5 minutes
+        if (cacheAge > 5 * 60 * 1000) {
+          console.log('🔄 Cache ancien, rechargement...')
+          await loadCards()
+        }
+      }
     }
   } catch (err) {
     console.error('Erreur lors de la vérification des mises à jour:', err)

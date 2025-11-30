@@ -398,11 +398,11 @@ async function getAllPagesFromDatabase(databaseId) {
           if (page.properties) {
             Object.entries(page.properties).forEach(([key, prop]) => {
               const value = extractPropertyValue(prop)
-              if (value !== null) {
-                pageData.properties[key] = {
-                  type: prop.type,
-                  value: value
-                }
+              // Inclure toutes les propriétés, même si la valeur est null
+              // Cela permet d'inclure les propriétés vides comme rich_text
+              pageData.properties[key] = {
+                type: prop.type,
+                value: value !== null ? value : (prop.type === 'checkbox' ? false : null)
               }
             })
           }
@@ -712,17 +712,32 @@ function transformPageToCard(page, databaseInfo = null) {
     genreClass: null, // Classe CSS formatée pour le genre
     dateAjoute: null,
     like: false, // Propriété "like" (checkbox)
+    note: null,
     databaseName: databaseInfo?.title || 'Base de données',
     databaseColor: databaseInfo?.color || '#6B7280'
   }
 
   // Extraire les propriétés de la page
   if (page.properties) {
-    // Debug: afficher toutes les propriétés disponibles
+    // Debug: afficher toutes les propriétés pour voir si "Note" existe
+    if (!window._debugNoteShown) {
+      console.log('🔍 Toutes les propriétés disponibles:', Object.keys(page.properties))
+      console.log('🔍 Détails des propriétés:', Object.entries(page.properties).map(([key, prop]) => ({
+        key,
+        type: prop.type,
+        value: prop.value
+      })))
+      window._debugNoteShown = true
+    }
 
     // Chercher "Titre" (insensible à la casse)
     for (const [key, prop] of Object.entries(page.properties)) {
       const keyLower = key.toLowerCase()
+
+      // Debug: vérifier spécifiquement "Note"
+      if (keyLower.includes('note')) {
+        console.log('✅ Propriété contenant "note" trouvée:', { key, type: prop.type, value: prop.value, cardTitre: card.titre || card.id })
+      }
 
       if (keyLower === 'titre' && prop.type === 'title' && prop.value) {
         card.titre = prop.value
@@ -750,12 +765,23 @@ function transformPageToCard(page, databaseInfo = null) {
           // Si c'est du rich_text, essayer de l'utiliser comme URL
           card.url = prop.value
         }
-      } else if (keyLower === 'like' && prop.type === 'checkbox') {
+      } else if (keyLower === 'note' && prop.type === 'rich_text') {
+        // Extraire la propriété "note" (rich_text)
+        // Vérifier d'abord si la propriété existe et a une valeur
+        if (prop.value && typeof prop.value === 'string' && prop.value.trim() !== '') {
+          card.note = prop.value
+          console.log('📝 Note extraite pour', card.titre || card.id + ':', card.note)
+        } else {
+          console.log('⚠️ Note trouvée mais vide pour', card.titre || card.id + ':', { value: prop.value, type: typeof prop.value })
+        }
+      }
+      else if (keyLower === 'like' && prop.type === 'checkbox') {
         // Extraire la propriété "like" (checkbox)
         // prop.value est déjà un booléen (true/false) grâce à extractPropertyValue
         // On extrait même si la valeur est false
         card.like = prop.value === true || prop.value === 'true'
-      } else if ((keyLower.includes('date') || keyLower.includes('ajout') || keyLower.includes('créé')) && prop.value) {
+      }
+      else if ((keyLower.includes('date') || keyLower.includes('ajout') || keyLower.includes('créé')) && prop.value) {
         if (prop.type === 'date' && prop.value.start) {
           const date = new Date(prop.value.start)
           card.dateAjoute = date.toLocaleDateString('fr-FR', {
@@ -925,5 +951,6 @@ export async function createPageInDatabase(databaseId, properties) {
     throw error
   }
 }
+
 
 

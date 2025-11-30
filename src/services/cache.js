@@ -1,6 +1,6 @@
 const CACHE_KEY = 'notion_cards_cache'
 const CACHE_METADATA_KEY = 'notion_cache_metadata'
-const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 heures en millisecondes
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes en millisecondes (réduit pour permettre les mises à jour)
 
 /**
  * Récupère les cards en cache depuis le localStorage

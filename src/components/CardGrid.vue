@@ -21,6 +21,8 @@ const sourceDisplay = computed(() => {
   }
   return { text: props.card.databaseId, dataValue: null }
 })
+
+// console.log(props.card)
 </script>
 
 <template>
@@ -76,6 +78,10 @@ const sourceDisplay = computed(() => {
         ]">
           {{ card.genre }}
         </span>
+      </div>
+      <!-- Note -->
+      <div v-if="card.note" class="my-4 note p-3 bg-yellow-50 border border-yellow-200">
+        <p class="text-base text-slate-600">{{ card.note }}</p>
       </div>
       <div class="flex items-center justify-between like">
         <!-- SVG rempli si like est true -->

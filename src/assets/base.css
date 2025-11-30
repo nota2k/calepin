@@ -202,9 +202,9 @@ input,select{
 }
 
 .like{
-  position:absolute;
-  bottom: 10px;
-  left: 10px;
+  /* position:absolute; */
+  /* bottom: 0; */
+  /* left: 10px; */
 
   svg{
     width: 25px;
@@ -216,9 +216,9 @@ input,select{
 
 .note{
   box-shadow: 0 3px 5px 0 rgb(33 26 4 / 40%);
-  margin:1rem auto 0.8rem auto;
-  max-width: 90%;
+  /* margin:0.6rem 0 0 0; */
   width: 100%;
+  rotate: -2deg;
 
   p{
     font-size: 1.5rem;

@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import { fetchMultipleNotionDatabases, getDatabasesMetadata } from '@/services/notion'
 import { getCachedCards, setCachedCards, setCachedMetadata, hasDatabasesChanged, clearCache } from '@/services/cache'
 import CardGrid from '@/components/CardGrid.vue'
-import CardList from '@/components/CardList.vue'
 import CreatePageForm from '@/components/CreatePageForm.vue'
 
 const cards = ref([])
@@ -316,13 +315,13 @@ onMounted(async () => {
 
     <!-- Vue grille -->
     <div v-else-if="filteredCards.length > 0 && viewMode === 'grid'"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-      <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" />
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" view-mode="grid" />
     </div>
 
     <!-- Vue liste -->
     <div v-else-if="filteredCards.length > 0 && viewMode === 'list'" class="space-y-2">
-      <CardList v-for="card in filteredCards" :key="card.id" :card="card" />
+      <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" view-mode="list" />
     </div>
 
     <!-- Message si aucune card -->

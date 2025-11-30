@@ -39,27 +39,38 @@ async function listDatasources() {
     // 1. Lister toutes les bases de données
     console.log('\n📊 BASES DE DONNÉES:\n')
 
-    const dbResponse = await fetch(`${NOTION_API_BASE}/search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${secret}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filter: {
-          property: 'object',
-          value: 'database'
+    let dbResponse
+    try {
+      dbResponse = await fetch(`${NOTION_API_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${secret}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
         },
-        sort: {
-          direction: 'descending',
-          timestamp: 'last_edited_time'
-        }
+        body: JSON.stringify({
+          filter: {
+            property: 'object',
+            value: 'database'
+          },
+          sort: {
+            direction: 'descending',
+            timestamp: 'last_edited_time'
+          }
+        })
       })
-    })
+    } catch (error) {
+      console.error('❌ [API /search] Erreur lors de l\'appel fetch:', error)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Message:', error.message)
+      throw error
+    }
 
     if (!dbResponse.ok) {
-      const error = await dbResponse.json()
+      const error = await dbResponse.json().catch(() => ({ message: `HTTP ${dbResponse.status}` }))
+      console.error('❌ [API /search] Erreur HTTP:', dbResponse.status)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Réponse:', JSON.stringify(error, null, 2))
       throw new Error(error.message || `HTTP ${dbResponse.status}`)
     }
 
@@ -105,7 +116,7 @@ async function listDatasources() {
               console.log(`      📄 Vide (aucune page)`)
             }
           }
-        } catch (err) {
+        } catch {
           // Ignorer les erreurs de comptage
         }
 
@@ -117,28 +128,39 @@ async function listDatasources() {
     console.log('\n' + '='.repeat(80))
     console.log('\n📄 PAGES AUTONOMES (potentielles datasources):\n')
 
-    const pagesResponse = await fetch(`${NOTION_API_BASE}/search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${secret}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filter: {
-          property: 'object',
-          value: 'page'
+    let pagesResponse
+    try {
+      pagesResponse = await fetch(`${NOTION_API_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${secret}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
         },
-        sort: {
-          direction: 'descending',
-          timestamp: 'last_edited_time'
-        },
-        page_size: 20 // Limiter à 20 pour l'affichage
+        body: JSON.stringify({
+          filter: {
+            property: 'object',
+            value: 'page'
+          },
+          sort: {
+            direction: 'descending',
+            timestamp: 'last_edited_time'
+          },
+          page_size: 20 // Limiter à 20 pour l'affichage
+        })
       })
-    })
+    } catch (error) {
+      console.error('❌ [API /search] Erreur lors de l\'appel fetch:', error)
+      console.error('   Endpoint: /search (filter: object=page)')
+      console.error('   Message:', error.message)
+      throw error
+    }
 
     if (!pagesResponse.ok) {
-      const error = await pagesResponse.json()
+      const error = await pagesResponse.json().catch(() => ({ message: `HTTP ${pagesResponse.status}` }))
+      console.error('❌ [API /search] Erreur HTTP:', pagesResponse.status)
+      console.error('   Endpoint: /search (filter: object=page)')
+      console.error('   Réponse:', JSON.stringify(error, null, 2))
       throw new Error(error.message || `HTTP ${pagesResponse.status}`)
     }
 

@@ -1,0 +1,27 @@
+# Configuration Apache pour le proxy CORS Notion
+# Redirige les requêtes /api/notion/* vers le proxy PHP
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Rediriger /api/notion/* vers le proxy PHP avec PATH_INFO
+    RewriteCond %{REQUEST_URI} ^/api/notion(/.*)$
+    RewriteRule ^api/notion(/.*)$ api/notion-proxy.php$1 [L,QSA]
+    
+    # Pour les applications SPA (Vue Router)
+    # Rediriger toutes les requêtes non-fichiers vers index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteRule ^(.*)$ index.html [L]
+</IfModule>
+
+# Désactiver la liste des répertoires
+Options -Indexes
+
+# Protection des fichiers sensibles
+<FilesMatch "\.(env|log|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

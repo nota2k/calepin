@@ -1,18 +1,40 @@
-// Utilise le proxy backend pour éviter les problèmes CORS et protéger la clé API
+// Utilise un proxy CORS pour contourner les restrictions CORS de l'API Notion
+// La clé API est envoyée depuis le client (visible dans le code JavaScript)
 const NOTION_API_BASE = '/api/notion'
+const NOTION_SECRET = import.meta.env.VITE_NOTION_SECRET
+
+if (!NOTION_SECRET) {
+  console.warn('⚠️ VITE_NOTION_SECRET n\'est pas défini dans les variables d\'environnement')
+}
 
 /**
- * Nettoie l'ID d'une base de données (enlève les tirets)
+ * Nettoie l'ID d'une base de données en supprimant les tirets
+ * @param {string} id - L'ID de la base de données avec ou sans tirets
+ * @returns {string} L'ID nettoyé sans tirets
+ * @private
  */
 function cleanDatabaseId(id) {
   return id.replace(/-/g, '')
 }
 
 /**
- * Effectue une requête à l'API Notion via le proxy backend
- * Le proxy gère l'authentification côté serveur
+ * Effectue une requête à l'API Notion via un proxy CORS
+ * Le proxy ajoute les en-têtes CORS nécessaires mais transmet la clé API du client
+ * ⚠️ La clé API est envoyée depuis le client (visible dans le code JavaScript)
+ * @param {string} endpoint - L'endpoint de l'API Notion (ex: '/search', '/databases/{id}')
+ * @param {Object} options - Options de la requête fetch (method, body, headers, etc.)
+ * @param {string} [options.method='GET'] - Méthode HTTP (GET, POST, PUT, DELETE, etc.)
+ * @param {string} [options.body] - Corps de la requête (sera stringifié si objet)
+ * @param {Object} [options.headers={}] - En-têtes HTTP supplémentaires
+ * @returns {Promise<Object>} La réponse JSON de l'API Notion
+ * @throws {Error} Si la requête échoue ou si la réponse n'est pas du JSON valide
+ * @private
  */
 async function notionRequest(endpoint, options = {}) {
+  if (!NOTION_SECRET) {
+    throw new Error('VITE_NOTION_SECRET n\'est pas défini. Ajoutez-le dans votre fichier .env')
+  }
+
   // Nettoyer l'ID de la base de données si présent dans l'endpoint
   let cleanEndpoint = endpoint
   if (endpoint.includes('/databases/')) {
@@ -21,9 +43,14 @@ async function notionRequest(endpoint, options = {}) {
     })
   }
 
-  const response = await fetch(`${NOTION_API_BASE}${cleanEndpoint}`, {
+  const isSearchEndpoint = cleanEndpoint === '/search'
+  const fullUrl = `${NOTION_API_BASE}${cleanEndpoint}`
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers: {
+      'Authorization': `Bearer ${NOTION_SECRET}`,
+      'Notion-Version': '2022-06-28',
       'Content-Type': 'application/json',
       ...options.headers
     }
@@ -33,20 +60,81 @@ async function notionRequest(endpoint, options = {}) {
   const contentType = response.headers.get('content-type') || ''
   if (contentType.includes('text/html')) {
     const text = await response.text()
-    console.error('❌ Réponse HTML reçue au lieu de JSON:', text.substring(0, 500))
-    throw new Error('Le serveur proxy ne fonctionne pas correctement. Vérifiez la configuration du serveur.')
+    if (isSearchEndpoint) {
+      console.error('❌ [API /search] Réponse HTML reçue au lieu de JSON')
+      console.error('   Endpoint:', cleanEndpoint)
+      console.error('   URL:', fullUrl)
+      console.error('   Status:', response.status)
+      console.error('   Content-Type:', contentType)
+      console.error('   Contenu HTML (premiers 500 caractères):', text.substring(0, 500))
+    } else {
+      console.error('❌ Réponse HTML reçue au lieu de JSON:', text.substring(0, 500))
+    }
+    throw new Error('La réponse de l\'API Notion n\'est pas du JSON valide.')
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
+    let error
+    try {
+      error = await response.json()
+    } catch {
+      // Si le parsing JSON échoue, essayer de lire le texte
+      const text = await response.text()
+      if (isSearchEndpoint) {
+        console.error('❌ [API /search] Erreur HTTP avec réponse non-JSON')
+        console.error('   Endpoint:', cleanEndpoint)
+        console.error('   Status:', response.status)
+        console.error('   Contenu (premiers 500 caractères):', text.substring(0, 500))
+      }
+      error = { message: `HTTP ${response.status}` }
+    }
+    if (isSearchEndpoint) {
+      console.error('❌ [API /search] Erreur HTTP:', response.status)
+      console.error('   Endpoint:', cleanEndpoint)
+      console.error('   Réponse:', JSON.stringify(error, null, 2))
+    }
     throw new Error(error.message || `Erreur HTTP ${response.status}`)
   }
 
-  return response.json()
+  // Parser le JSON avec gestion d'erreur améliorée
+  try {
+    return await response.json()
+  } catch (parseError) {
+    // Si le parsing échoue, lire le texte pour diagnostiquer
+    const text = await response.text()
+    if (isSearchEndpoint) {
+      console.error('❌ [API /search] Erreur lors du parsing JSON')
+      console.error('   Endpoint:', cleanEndpoint)
+      console.error('   URL:', fullUrl)
+      console.error('   Status:', response.status)
+      console.error('   Content-Type:', contentType)
+      console.error('   Erreur de parsing:', parseError.message)
+      console.error('   Contenu reçu (premiers 500 caractères):', text.substring(0, 500))
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('   ⚠️  La réponse semble être du HTML au lieu de JSON')
+      }
+    } else {
+      console.error('❌ Erreur lors du parsing JSON:', parseError.message)
+      console.error('   Contenu reçu:', text.substring(0, 500))
+    }
+    throw new Error(`Erreur de parsing JSON: ${parseError.message}. La réponse du serveur n'est pas du JSON valide.`)
+  }
 }
 
 /**
- * Liste toutes les bases de données Notion accessibles
+ * Liste toutes les bases de données Notion accessibles par l'intégration
+ * @returns {Promise<Array<Object>>} Tableau d'objets représentant les bases de données
+ * @returns {string} returns[].id - L'ID unique de la base de données
+ * @returns {string} returns[].title - Le titre de la base de données
+ * @returns {string|null} returns[].icon - L'emoji icône de la base de données
+ * @returns {string} returns[].url - L'URL Notion de la base de données
+ * @returns {Array<string>} returns[].properties - Liste des noms de propriétés
+ * @returns {string} returns[].created_time - Date de création (ISO 8601)
+ * @returns {string} returns[].last_edited_time - Date de dernière modification (ISO 8601)
+ * @throws {Error} Si la requête vers l'API Notion échoue
+ * @example
+ * const databases = await listAllNotionDatabases()
+ * console.log(`Trouvé ${databases.length} bases de données`)
  */
 export async function listAllNotionDatabases() {
   try {
@@ -76,13 +164,32 @@ export async function listAllNotionDatabases() {
 
     return databases
   } catch (error) {
-    console.error('Erreur lors de la récupération des bases de données:', error)
+    console.error('❌ [API /search] Erreur lors de la récupération des bases de données:', error)
+    console.error('   Endpoint: /search (filter: object=database)')
+    console.error('   Message:', error.message)
+    if (error.stack) {
+      console.error('   Stack:', error.stack)
+    }
     throw error
   }
 }
 
 /**
- * Liste toutes les pages Notion accessibles
+ * Liste toutes les pages Notion accessibles (non archivées) avec pagination automatique
+ * @returns {Promise<Array<Object>>} Tableau d'objets représentant les pages
+ * @returns {string} returns[].id - L'ID unique de la page
+ * @returns {string} returns[].title - Le titre de la page
+ * @returns {string|null} returns[].icon - L'icône de la page (emoji, URL fichier, ou URL externe)
+ * @returns {string} returns[].url - L'URL Notion de la page
+ * @returns {Object} returns[].parent - Informations sur le parent (type, id, etc.)
+ * @returns {boolean} returns[].archived - Indique si la page est archivée
+ * @returns {Object} returns[].properties - Objet contenant toutes les propriétés de la page
+ * @returns {string} returns[].created_time - Date de création (ISO 8601)
+ * @returns {string} returns[].last_edited_time - Date de dernière modification (ISO 8601)
+ * @throws {Error} Si la requête vers l'API Notion échoue
+ * @example
+ * const pages = await listAllNotionPages()
+ * console.log(`Trouvé ${pages.length} pages`)
  */
 export async function listAllNotionPages() {
   try {
@@ -161,7 +268,12 @@ export async function listAllNotionPages() {
 
     return allPages
   } catch (error) {
-    console.error('Erreur lors de la récupération des pages:', error)
+    console.error('❌ [API /search] Erreur lors de la récupération des pages:', error)
+    console.error('   Endpoint: /search (filter: object=page)')
+    console.error('   Message:', error.message)
+    if (error.stack) {
+      console.error('   Stack:', error.stack)
+    }
     throw error
   }
 }
@@ -169,6 +281,9 @@ export async function listAllNotionPages() {
 /**
  * Récupère les informations d'une base de données spécifique par son nom
  * La recherche est insensible à la casse
+ * @param {string} name - Le nom de la base de données à rechercher
+ * @returns {Promise<Object|null>} L'objet base de données ou null si non trouvée
+ * @private
  */
 async function getDatabaseByName(name) {
   const databases = await listAllNotionDatabases()
@@ -176,7 +291,18 @@ async function getDatabaseByName(name) {
 }
 
 /**
- * Extrait la valeur d'une propriété Notion
+ * Extrait la valeur d'une propriété Notion selon son type
+ * @param {Object} property - L'objet propriété Notion
+ * @param {string} property.type - Le type de la propriété (title, rich_text, number, etc.)
+ * @returns {*} La valeur extraite selon le type de propriété
+ * @returns {string|null} Pour title, rich_text, select, url, email, phone_number
+ * @returns {number|null} Pour number
+ * @returns {Array<string>} Pour multi_select
+ * @returns {Object|null} Pour date (avec start et end)
+ * @returns {boolean} Pour checkbox
+ * @returns {number} Pour relation (nombre de relations)
+ * @returns {null} Pour les types non supportés
+ * @private
  */
 function extractPropertyValue(property) {
   if (!property) return null
@@ -215,61 +341,17 @@ function extractPropertyValue(property) {
   }
 }
 
-/**
- * Récupère les pages récentes d'une base de données avec leurs données (limité)
- * Utilisez getAllPagesFromDatabase() pour récupérer toutes les pages
- */
-export async function getDatabasePages(databaseId, limit = 10) {
-  try {
-    const queryData = await notionRequest(`/databases/${databaseId}/query`, {
-      method: 'POST',
-      body: JSON.stringify({
-        page_size: limit,
-        sorts: [
-          {
-            property: 'last_edited_time',
-            direction: 'descending'
-          }
-        ]
-      })
-    })
-
-    const pages = (queryData.results || [])
-      .filter(page => !page.archived)
-      .map(page => {
-        const pageData = {
-          id: page.id,
-          url: page.url,
-          created_time: page.created_time,
-          last_edited_time: page.last_edited_time,
-          properties: {}
-        }
-
-        // Extraire toutes les propriétés de la page
-        if (page.properties) {
-          Object.entries(page.properties).forEach(([key, prop]) => {
-            const value = extractPropertyValue(prop)
-            if (value !== null) {
-              pageData.properties[key] = {
-                type: prop.type,
-                value: value
-              }
-            }
-          })
-        }
-
-        return pageData
-      })
-
-    return pages
-  } catch (error) {
-    console.warn(`Impossible de récupérer les pages pour ${databaseId}:`, error.message)
-    return []
-  }
-}
 
 /**
- * Récupère toutes les pages d'une base de données avec pagination
+ * Récupère toutes les pages d'une base de données avec pagination automatique
+ * @param {string} databaseId - L'ID de la base de données (avec ou sans tirets)
+ * @returns {Promise<Array<Object>>} Tableau de pages avec leurs propriétés
+ * @returns {string} returns[].id - L'ID de la page
+ * @returns {string} returns[].url - L'URL Notion de la page
+ * @returns {string} returns[].created_time - Date de création
+ * @returns {string} returns[].last_edited_time - Date de dernière modification
+ * @returns {Object} returns[].properties - Objet contenant toutes les propriétés extraites
+ * @private
  */
 async function getAllPagesFromDatabase(databaseId) {
   try {
@@ -334,6 +416,12 @@ async function getAllPagesFromDatabase(databaseId) {
 
 /**
  * Récupère uniquement les métadonnées d'une base de données (sans les pages)
+ * @param {string} databaseName - Le nom de la base de données
+ * @returns {Promise<Object|null>} Les métadonnées ou null si non trouvée
+ * @returns {string} returns.id - L'ID de la base de données
+ * @returns {number} returns.pageCount - Le nombre de pages dans la base
+ * @returns {string} returns.lastEditedTime - Date de dernière modification
+ * @private
  */
 async function getDatabaseMetadata(databaseName) {
   try {
@@ -357,6 +445,15 @@ async function getDatabaseMetadata(databaseName) {
 
 /**
  * Récupère les métadonnées de toutes les bases de données cibles
+ * Les bases de données cibles sont définies dans le code : 'Calepin musique' et 'Calepin web'
+ * @returns {Promise<Object>} Objet avec les IDs de bases de données comme clés
+ * @returns {Object} returns[databaseId] - Métadonnées de la base de données
+ * @returns {string} returns[databaseId].id - L'ID de la base de données
+ * @returns {number} returns[databaseId].pageCount - Le nombre de pages
+ * @returns {string} returns[databaseId].lastEditedTime - Date de dernière modification
+ * @example
+ * const metadata = await getDatabasesMetadata()
+ * console.log(Object.keys(metadata)) // ['id1', 'id2', ...]
  */
 export async function getDatabasesMetadata() {
   try {
@@ -378,7 +475,11 @@ export async function getDatabasesMetadata() {
 }
 
 /**
- * Récupère le nombre de pages dans une base de données
+ * Récupère le nombre de pages non archivées dans une base de données
+ * Limite la pagination à 1000 pages pour éviter trop de requêtes
+ * @param {string} databaseId - L'ID de la base de données
+ * @returns {Promise<number>} Le nombre de pages (maximum 1000)
+ * @private
  */
 async function getDatabasePageCount(databaseId) {
   try {
@@ -420,7 +521,27 @@ async function getDatabasePageCount(databaseId) {
 }
 
 /**
- * Récupère les informations d'une base de données pour créer une card
+ * Récupère les informations complètes d'une base de données pour créer une card
+ * Inclut les métadonnées, toutes les pages, et les informations de style
+ * @param {string} databaseName - Le nom de la base de données
+ * @returns {Promise<Object|null>} Les informations de la base de données ou null si non trouvée
+ * @returns {string} returns.id - L'ID de la base de données
+ * @returns {string} returns.title - Le titre de la base de données
+ * @returns {string} returns.displayName - Le nom d'affichage formaté
+ * @returns {string} returns.description - La description de la base de données
+ * @returns {string|null} returns.icon - L'emoji icône
+ * @returns {string} returns.color - La classe CSS de couleur
+ * @returns {string} returns.headerColor - La couleur d'en-tête (RGB ou CSS variable)
+ * @returns {string} returns.url - L'URL Notion
+ * @returns {string} returns.databaseId - L'ID de la base de données
+ * @returns {number} returns.pageCount - Le nombre de pages
+ * @returns {number} returns.propertiesCount - Le nombre de propriétés
+ * @returns {string} returns.lastEdited - Date formatée en français
+ * @returns {string} returns.createdTime - Date de création (ISO 8601)
+ * @returns {string} returns.lastEditedTime - Date de modification (ISO 8601)
+ * @returns {Array<Object>} returns.pages - Toutes les pages avec leurs données
+ * @returns {Array<string>} returns.properties - Liste des noms de propriétés
+ * @private
  */
 async function getDatabaseCardInfo(databaseName) {
   try {
@@ -532,6 +653,15 @@ async function getDatabaseCardInfo(databaseName) {
   }
 }
 
+/**
+ * Sériealise une valeur pour l'utiliser comme classe CSS
+ * Normalise les accents, remplace les espaces par des tirets, supprime les caractères spéciaux
+ * @param {string} value - La valeur à sérialiser
+ * @returns {string} La valeur sérialisée pour une classe CSS
+ * @private
+ * @example
+ * serializeForClass('Jazz & Blues') // 'jazz-blues'
+ */
 function serializeForClass(value) {
   if (!value || typeof value !== 'string') return ''
   return value
@@ -546,7 +676,23 @@ function serializeForClass(value) {
 }
 
 /**
- * Transforme une page en card pour l'affichage
+ * Transforme une page Notion en objet card pour l'affichage
+ * Extrait les propriétés spécifiques (titre, artiste, genre, date, source/URL)
+ * @param {Object} page - L'objet page Notion avec ses propriétés
+ * @param {Object} [databaseInfo=null] - Informations sur la base de données parente
+ * @param {string} [databaseInfo.title] - Le titre de la base de données
+ * @param {string} [databaseInfo.color] - La couleur de la base de données
+ * @returns {Object} L'objet card formaté
+ * @returns {string} returns.id - L'ID de la page
+ * @returns {string} returns.url - L'URL de la page (ou de la source)
+ * @returns {string|null} returns.titre - Le titre extrait
+ * @returns {string|null} returns.artiste - L'artiste extrait
+ * @returns {string|null} returns.genre - Le genre extrait
+ * @returns {string|null} returns.genreClass - La classe CSS du genre
+ * @returns {string|null} returns.dateAjoute - La date formatée (JJ/MM/AAAA)
+ * @returns {string} returns.databaseName - Le nom de la base de données
+ * @returns {string} returns.databaseColor - La couleur de la base de données
+ * @private
  */
 function transformPageToCard(page, databaseInfo = null) {
   const card = {
@@ -633,8 +779,22 @@ function transformPageToCard(page, databaseInfo = null) {
 }
 
 /**
- * Récupère les informations de plusieurs bases de données pour les cards
- * Retourne une card par page au lieu d'une card par base de données
+ * Récupère les informations de plusieurs bases de données et retourne une card par page
+ * Les bases de données cibles sont : 'Calepin musique' et 'Calepin web'
+ * @returns {Promise<Array<Object>>} Tableau de cards, une par page
+ * @returns {string} returns[].id - L'ID de la page
+ * @returns {string} returns[].url - L'URL de la page
+ * @returns {string|null} returns[].titre - Le titre de la page
+ * @returns {string|null} returns[].artiste - L'artiste (si applicable)
+ * @returns {string|null} returns[].genre - Le genre (si applicable)
+ * @returns {string|null} returns[].genreClass - La classe CSS du genre
+ * @returns {string|null} returns[].dateAjoute - La date d'ajout formatée
+ * @returns {string} returns[].databaseName - Le nom de la base de données
+ * @returns {string} returns[].databaseColor - La couleur de la base de données
+ * @throws {Error} Si la récupération des données échoue
+ * @example
+ * const cards = await fetchMultipleNotionDatabases()
+ * console.log(`Récupéré ${cards.length} cards`)
  */
 export async function fetchMultipleNotionDatabases() {
   try {
@@ -666,7 +826,18 @@ export async function fetchMultipleNotionDatabases() {
 }
 
 /**
- * Récupère les propriétés d'une base de données
+ * Récupère les propriétés d'une base de données avec leurs options pour select/multi_select
+ * @param {string} databaseId - L'ID de la base de données (avec ou sans tirets)
+ * @returns {Promise<Object>} Les propriétés de la base de données
+ * @returns {string} returns.id - L'ID de la base de données
+ * @returns {string} returns.title - Le titre de la base de données
+ * @returns {Object} returns.properties - Objet avec les propriétés comme clés
+ * @returns {string} returns.properties[].type - Le type de la propriété
+ * @returns {Array|null} returns.properties[].options - Les options pour select/multi_select
+ * @throws {Error} Si la récupération échoue
+ * @example
+ * const props = await getDatabaseProperties('abc-123-def')
+ * console.log(props.properties) // { Titre: { type: 'title', options: null }, ... }
  */
 export async function getDatabaseProperties(databaseId) {
   try {
@@ -700,7 +871,16 @@ export async function getDatabaseProperties(databaseId) {
 }
 
 /**
- * Crée une page dans une base de données Notion
+ * Crée une nouvelle page dans une base de données Notion
+ * @param {string} databaseId - L'ID de la base de données (avec ou sans tirets)
+ * @param {Object} properties - Les propriétés de la page au format Notion API
+ * @returns {Promise<Object>} La réponse de l'API Notion avec les détails de la page créée
+ * @throws {Error} Si la création échoue
+ * @example
+ * await createPageInDatabase('abc-123', {
+ *   Titre: { title: [{ text: { content: 'Ma page' } }] },
+ *   Artiste: { rich_text: [{ text: { content: 'Mon artiste' } }] }
+ * })
  */
 export async function createPageInDatabase(databaseId, properties) {
   try {
@@ -723,17 +903,4 @@ export async function createPageInDatabase(databaseId, properties) {
   }
 }
 
-/**
- * Formate le titre d'une card pour l'affichage
- */
-export function formatCardTitle(card) {
-  if (!card) return ''
-
-  // Si le titre contient "Calepin", on peut le formater différemment
-  if (card.title && card.title.includes('Calepin')) {
-    return card.title
-  }
-
-  return card.title || 'Sans titre'
-}
 

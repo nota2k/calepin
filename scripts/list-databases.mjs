@@ -33,27 +33,38 @@ if (!secret) {
 
 async function listDatabases() {
   try {
-    const response = await fetch(`${NOTION_API_BASE}/search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${secret}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filter: {
-          property: 'object',
-          value: 'database'
+    let response
+    try {
+      response = await fetch(`${NOTION_API_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${secret}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
         },
-        sort: {
-          direction: 'descending',
-          timestamp: 'last_edited_time'
-        }
+        body: JSON.stringify({
+          filter: {
+            property: 'object',
+            value: 'database'
+          },
+          sort: {
+            direction: 'descending',
+            timestamp: 'last_edited_time'
+          }
+        })
       })
-    })
+    } catch (error) {
+      console.error('❌ [API /search] Erreur lors de l\'appel fetch:', error)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Message:', error.message)
+      throw error
+    }
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
+      console.error('❌ [API /search] Erreur HTTP:', response.status)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Réponse:', JSON.stringify(error, null, 2))
       throw new Error(error.message || `HTTP ${response.status}`)
     }
 

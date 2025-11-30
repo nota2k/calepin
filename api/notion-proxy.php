@@ -1,14 +1,14 @@
 <?php
 /**
- * Proxy pour l'API Notion en production
- * Gère les requêtes vers l'API Notion côté serveur pour éviter les problèmes CORS
- * et protéger la clé APIs
+ * Proxy CORS pour l'API Notion en production
+ * Transmet les requêtes vers l'API Notion en ajoutant les en-têtes CORS
+ * La clé API est envoyée depuis le client (pas de protection côté serveur)
  */
 
-header('Content-Type: application/json');
+// En-têtes CORS
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Notion-Secret, Notion-Version, Accept');
+header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization, Notion-Version');
 header('Access-Control-Max-Age: 86400');
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -17,35 +17,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Récupérer la clé API Notion depuis les variables d'environnement
-$notionSecret = getenv('NOTION_SECRET') ?: getenv('VITE_NOTION_SECRET');
-
-if (empty($notionSecret)) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'NOTION_SECRET not configured',
-        'message' => 'Please configure NOTION_SECRET or VITE_NOTION_SECRET as environment variable'
-    ]);
-    exit;
-}
-
 // Extraire le chemin de l'endpoint Notion depuis l'URL
-$requestUri = $_SERVER['REQUEST_URI'];
-$path = parse_url($requestUri, PHP_URL_PATH);
-
-// Extraire l'endpoint Notion (enlever /api/notion)
+// Le .htaccess passe l'endpoint via PATH_INFO
 $endpoint = '';
-if (preg_match('#/api/notion(/.*)$#', $path, $matches)) {
-    $endpoint = $matches[1];
+
+// Méthode 1 : PATH_INFO (quand appelé via .htaccess)
+if (isset($_SERVER['PATH_INFO']) && $_SERVER['PATH_INFO'] !== '') {
+    $endpoint = ltrim($_SERVER['PATH_INFO'], '/');
 } else {
-    // Si pas trouvé, essayer depuis REQUEST_URI direct
-    if (preg_match('#/api/notion(/.*)$#', $requestUri, $matches)) {
-        $endpoint = $matches[1];
+    // Méthode 2 : Extraire depuis REQUEST_URI
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $path = parse_url($requestUri, PHP_URL_PATH);
+    
+    if (preg_match('#/api/notion(/.*)$#', $path, $matches)) {
+        $endpoint = ltrim($matches[1], '/');
+    } elseif (preg_match('#/api/notion(/.*)$#', $requestUri, $matches)) {
+        $endpoint = ltrim($matches[1], '/');
     }
 }
-
-// Nettoyer l'endpoint
-$endpoint = ltrim($endpoint, '/');
 
 // Si l'endpoint est vide, retourner une erreur
 if (empty($endpoint)) {
@@ -76,15 +65,44 @@ $method = $_SERVER['REQUEST_METHOD'];
 // Initialiser cURL
 $ch = curl_init($notionApiUrl);
 
+// Préparer les en-têtes pour la requête vers Notion
+$headers = [
+    'Notion-Version: 2022-06-28',
+    'Content-Type: application/json'
+];
+
+// Transmettre l'en-tête Authorization du client s'il existe
+$authorizationHeader = null;
+if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $authorizationHeader = $_SERVER['HTTP_AUTHORIZATION'];
+} elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    // Certains serveurs mettent Authorization dans REDIRECT_HTTP_AUTHORIZATION
+    $authorizationHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+} else {
+    // Si pas d'Authorization, essayer de la récupérer depuis les headers
+    $allHeaders = getallheaders();
+    if (isset($allHeaders['Authorization'])) {
+        $authorizationHeader = $allHeaders['Authorization'];
+    }
+}
+
+// Vérifier si l'en-tête Authorization est présent
+if (!$authorizationHeader) {
+    http_response_code(401);
+    echo json_encode([
+        'error' => 'Authorization header missing',
+        'message' => 'L\'en-tête Authorization est manquant. Vérifiez que VITE_NOTION_SECRET est défini dans votre fichier .env et que l\'application a été rebuild.'
+    ]);
+    exit;
+}
+
+$headers[] = 'Authorization: ' . $authorizationHeader;
+
 // Configurer les options cURL
 $curlOptions = [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_CUSTOMREQUEST => $method,
-    CURLOPT_HTTPHEADER => [
-        'Authorization: Bearer ' . $notionSecret,
-        'Notion-Version: 2022-06-28',
-        'Content-Type: application/json'
-    ],
+    CURLOPT_HTTPHEADER => $headers,
     CURLOPT_SSL_VERIFYPEER => true,
     CURLOPT_SSL_VERIFYHOST => 2,
     CURLOPT_TIMEOUT => 30
@@ -107,6 +125,15 @@ curl_close($ch);
 
 // Gérer les erreurs cURL
 if ($error) {
+    // Logger les erreurs pour /search
+    if (strpos($endpoint, 'search') !== false) {
+        error_log(sprintf(
+            '[API /search] Erreur cURL: %s | Endpoint: %s | URL: %s',
+            $error,
+            $endpoint,
+            $notionApiUrl
+        ));
+    }
     http_response_code(500);
     echo json_encode([
         'error' => 'cURL error',
@@ -118,6 +145,15 @@ if ($error) {
 
 // Vérifier si la réponse est vide ou invalide
 if ($response === false || $httpCode === 0) {
+    // Logger les erreurs pour /search
+    if (strpos($endpoint, 'search') !== false) {
+        error_log(sprintf(
+            '[API /search] Réponse invalide | HTTP Code: %s | Endpoint: %s | URL: %s',
+            $httpCode,
+            $endpoint,
+            $notionApiUrl
+        ));
+    }
     http_response_code(500);
     echo json_encode([
         'error' => 'Invalid response from Notion API',
@@ -125,6 +161,18 @@ if ($response === false || $httpCode === 0) {
         'url' => $notionApiUrl
     ]);
     exit;
+}
+
+// Logger les erreurs HTTP pour /search
+if (strpos($endpoint, 'search') !== false && $httpCode >= 400) {
+    $responseData = json_decode($response, true);
+    error_log(sprintf(
+        '[API /search] Erreur HTTP %s | Endpoint: %s | URL: %s | Réponse: %s',
+        $httpCode,
+        $endpoint,
+        $notionApiUrl,
+        json_encode($responseData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    ));
 }
 
 // Retourner la réponse avec le code HTTP approprié
@@ -138,4 +186,5 @@ if ($contentType) {
 }
 
 echo $response;
+
 

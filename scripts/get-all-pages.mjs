@@ -189,27 +189,38 @@ async function getAllPages() {
 
     // 1. Lister toutes les bases de données
     console.log('\n📊 Récupération de la liste des bases de données...')
-    const dbResponse = await fetch(`${NOTION_API_BASE}/search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${secret}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filter: {
-          property: 'object',
-          value: 'database'
+    let dbResponse
+    try {
+      dbResponse = await fetch(`${NOTION_API_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${secret}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
         },
-        sort: {
-          direction: 'descending',
-          timestamp: 'last_edited_time'
-        }
+        body: JSON.stringify({
+          filter: {
+            property: 'object',
+            value: 'database'
+          },
+          sort: {
+            direction: 'descending',
+            timestamp: 'last_edited_time'
+          }
+        })
       })
-    })
+    } catch (error) {
+      console.error('❌ [API /search] Erreur lors de l\'appel fetch:', error)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Message:', error.message)
+      throw error
+    }
 
     if (!dbResponse.ok) {
-      const error = await dbResponse.json()
+      const error = await dbResponse.json().catch(() => ({ message: `HTTP ${dbResponse.status}` }))
+      console.error('❌ [API /search] Erreur HTTP:', dbResponse.status)
+      console.error('   Endpoint: /search (filter: object=database)')
+      console.error('   Réponse:', JSON.stringify(error, null, 2))
       throw new Error(error.message || `HTTP ${dbResponse.status}`)
     }
 

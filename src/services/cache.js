@@ -3,7 +3,14 @@ const CACHE_METADATA_KEY = 'notion_cache_metadata'
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 heures en millisecondes
 
 /**
- * Récupère les données en cache
+ * Récupère les cards en cache depuis le localStorage
+ * Vérifie automatiquement si le cache est expiré (24 heures)
+ * @returns {Array<Object>|null} Les cards en cache ou null si expiré/inexistant
+ * @example
+ * const cached = getCachedCards()
+ * if (cached) {
+ *   console.log(`Cache valide avec ${cached.length} cards`)
+ * }
  */
 export function getCachedCards() {
   try {
@@ -28,7 +35,10 @@ export function getCachedCards() {
 }
 
 /**
- * Sauvegarde les cards en cache
+ * Sauvegarde les cards en cache dans le localStorage avec un timestamp
+ * @param {Array<Object>} cards - Le tableau de cards à sauvegarder
+ * @example
+ * setCachedCards([{ id: '1', titre: 'Ma card' }, ...])
  */
 export function setCachedCards(cards) {
   try {
@@ -44,6 +54,15 @@ export function setCachedCards(cards) {
 
 /**
  * Récupère les métadonnées des bases de données en cache
+ * @returns {Object|null} Les métadonnées en cache ou null si inexistant
+ * @returns {Object} returns[databaseId] - Métadonnées d'une base de données
+ * @returns {number} returns[databaseId].pageCount - Nombre de pages
+ * @returns {string} returns[databaseId].lastEditedTime - Date de modification
+ * @example
+ * const metadata = getCachedMetadata()
+ * if (metadata) {
+ *   console.log('Métadonnées en cache:', Object.keys(metadata))
+ * }
  */
 export function getCachedMetadata() {
   try {
@@ -56,7 +75,12 @@ export function getCachedMetadata() {
 }
 
 /**
- * Sauvegarde les métadonnées des bases de données
+ * Sauvegarde les métadonnées des bases de données dans le localStorage
+ * @param {Object} metadata - Les métadonnées à sauvegarder (clé = databaseId)
+ * @example
+ * setCachedMetadata({
+ *   'abc-123': { pageCount: 10, lastEditedTime: '2024-01-01T00:00:00Z' }
+ * })
  */
 export function setCachedMetadata(metadata) {
   try {
@@ -67,7 +91,17 @@ export function setCachedMetadata(metadata) {
 }
 
 /**
- * Vérifie si les bases de données ont été modifiées
+ * Vérifie si les bases de données ont été modifiées en comparant avec le cache
+ * @param {Object} currentMetadata - Les métadonnées actuelles à comparer
+ * @param {Object} currentMetadata[databaseId] - Métadonnées d'une base de données
+ * @param {number} currentMetadata[databaseId].pageCount - Nombre de pages actuel
+ * @param {string} currentMetadata[databaseId].lastEditedTime - Date de modification actuelle
+ * @returns {boolean} true si des changements ont été détectés, false sinon
+ * @example
+ * const metadata = await getDatabasesMetadata()
+ * if (hasDatabasesChanged(metadata)) {
+ *   console.log('Des changements détectés, rechargement nécessaire')
+ * }
  */
 export function hasDatabasesChanged(currentMetadata) {
   const cachedMetadata = getCachedMetadata()
@@ -93,7 +127,9 @@ export function hasDatabasesChanged(currentMetadata) {
 }
 
 /**
- * Nettoie le cache
+ * Nettoie complètement le cache (cards et métadonnées)
+ * @example
+ * clearCache() // Supprime tout le cache
  */
 export function clearCache() {
   localStorage.removeItem(CACHE_KEY)

@@ -19,12 +19,24 @@ const formFields = computed(() => {
   if (!selectedDatabase.value || !databaseProperties.value) return []
 
   const properties = databaseProperties.value.properties || {}
-  return Object.entries(properties).map(([key, prop]) => ({
+  const fields = Object.entries(properties).map(([key, prop]) => ({
     key,
     name: key,
     type: prop.type,
     options: prop.options || null
   }))
+
+  // Trier pour mettre "titre" en premier, puis "artiste"
+  return fields.sort((a, b) => {
+    const aName = a.name.toLowerCase()
+    const bName = b.name.toLowerCase()
+
+    if (aName === 'titre') return -1
+    if (bName === 'titre') return 1
+    if (aName === 'artiste') return -1
+    if (bName === 'artiste') return 1
+    return 0
+  })
 })
 
 onMounted(async () => {
@@ -206,17 +218,16 @@ const emit = defineEmits(['page-created'])
       <p class="text-red-800">{{ error }}</p>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form @submit.prevent="handleSubmit" class="space-y-4" autocomplete="off">
       <!-- Sélection de la base de données -->
       <div>
         <label for="database" class="block text-sm font-medium text-gray-700 mb-2">
           Base de données
         </label>
-        <select id="database" v-model="selectedDatabaseId" :disabled="loading"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <select id="database" v-model="selectedDatabaseId" :disabled="loading" autocomplete="off"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-2/4">
           <option value="">Sélectionnez une base de données</option>
-          <option v-for="db in databases" :key="db.id" :value="db.id">
-            {{ db.icon || '📊' }} {{ db.title }}
+          <option v-for="db in databases" :key="db.id" :value="db.id">{{ db.title }}
           </option>
         </select>
       </div>
@@ -228,31 +239,37 @@ const emit = defineEmits(['page-created'])
       </div>
 
       <!-- Champs dynamiques selon la base de données -->
-      <div v-if="selectedDatabaseId && !loading && formFields.length > 0" class="space-y-4 border-t pt-4">
-        <div v-for="field in formFields" :key="field.key" class="space-y-2">
+      <div v-if="selectedDatabaseId && !loading && formFields.length > 0"
+        class="space-y-4 border-t pt-4 flex items-center justify-between flex-wrap gap-2">
+        <div v-for="field in formFields" :key="field.key" :class="[
+          'space-y-2',
+          (field.name.toLowerCase() === 'artiste' || field.name.toLowerCase() === 'titre') ? 'w-full' : 'grow-2 min-w-2/54'
+        ]">
           <label :for="field.key" class="block text-sm font-medium text-gray-700">
             {{ field.name }}
-            <span class="text-xs text-gray-500 ml-1">({{ field.type }})</span>
           </label>
 
           <!-- Champ titre -->
           <input v-if="field.type === 'title'" :id="field.key" v-model="formData[field.key]" type="text"
-            :required="field.type === 'title'"
+            :required="field.type === 'title'" autocomplete="off" data-lpignore="true"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             :placeholder="`Entrez ${field.name.toLowerCase()}`" />
 
           <!-- Champ texte riche -->
-          <textarea v-else-if="field.type === 'rich_text'" :id="field.key" v-model="formData[field.key]" rows="3"
+          <input type="text" v-else-if="field.type === 'rich_text'" :id="field.key" v-model="formData[field.key]"
+            autocomplete="off" data-lpignore="true"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             :placeholder="`Entrez ${field.name.toLowerCase()}`" />
 
           <!-- Champ nombre -->
           <input v-else-if="field.type === 'number'" :id="field.key" v-model="formData[field.key]" type="number"
+            autocomplete="off" data-lpignore="true"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             :placeholder="`Entrez ${field.name.toLowerCase()}`" />
 
           <!-- Champ select -->
           <select v-else-if="field.type === 'select' && field.options" :id="field.key" v-model="formData[field.key]"
+            autocomplete="off" data-lpignore="true"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="">Sélectionnez une option</option>
             <option v-for="option in field.options" :key="option.name" :value="option.name">
@@ -273,7 +290,8 @@ const emit = defineEmits(['page-created'])
 
           <!-- Champ date -->
           <input v-else-if="field.type === 'date'" :id="field.key" v-model="formData[field.key]" type="date"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            autocomplete="off" data-lpignore="true"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-{50%}" />
 
           <!-- Champ checkbox -->
           <div v-else-if="field.type === 'checkbox'" class="flex items-center">
@@ -286,22 +304,26 @@ const emit = defineEmits(['page-created'])
 
           <!-- Champ URL -->
           <input v-else-if="field.type === 'url'" :id="field.key" v-model="formData[field.key]" type="url"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            autocomplete="off" data-lpignore="true"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-2/4"
             placeholder="https://..." />
 
           <!-- Champ email -->
           <input v-else-if="field.type === 'email'" :id="field.key" v-model="formData[field.key]" type="email"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            autocomplete="off" data-lpignore="true"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-2/4"
             placeholder="email@example.com" />
 
           <!-- Champ téléphone -->
           <input v-else-if="field.type === 'phone_number'" :id="field.key" v-model="formData[field.key]" type="tel"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            autocomplete="off" data-lpignore="true"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-2/4"
             placeholder="+33 1 23 45 67 89" />
 
           <!-- Champ texte par défaut -->
-          <input v-else :id="field.key" v-model="formData[field.key]" type="text"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <input v-else :id="field.key" v-model="formData[field.key]" type="text" autocomplete="off"
+            data-lpignore="true"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-2/4"
             :placeholder="`Entrez ${field.name.toLowerCase()}`" />
         </div>
       </div>

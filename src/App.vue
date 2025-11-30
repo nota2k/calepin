@@ -1,38 +1,12 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
+import AppHeader from '@/components/AppHeader.vue'
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col">
     <!-- Header avec menu -->
-    <header class="bg-white shadow-md sticky top-0 z-50">
-      <nav class="container mx-auto px-4">
-        <div class="flex items-center justify-between">
-          <RouterLink to="/" class="flex items-center space-x-2 logo-wrapper">
-            <img alt="Logo" src="@/assets/logo-calepin.svg" class="h-20 w-20" />
-            <span class="text-xl font-bold text-gray-800">Calepin</span>
-          </RouterLink>
-
-          <div class="hidden md:flex items-center space-x-6">
-            <RouterLink to="/databases" class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              active-class="text-blue-600">
-              Bases de données
-            </RouterLink>
-            <RouterLink to="/about" class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              active-class="text-blue-600">
-              À propos
-            </RouterLink>
-          </div>
-
-          <!-- Menu mobile -->
-          <button class="md:hidden text-gray-700 hover:text-blue-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </nav>
-    </header>
+    <AppHeader />
 
     <!-- Main content -->
     <main class="flex-grow container mx-auto px-4 py-8">

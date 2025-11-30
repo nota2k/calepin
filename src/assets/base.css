@@ -59,34 +59,6 @@
   top: 0;
 }
 
-.logo-wrapper{
-  position: relative;
-  img{
-  transition: all 0.3s ease;
-
-  }
-
-  &::after{
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color:rgba(255, 255, 255, 0.5);
-    mix-blend-mode:color;
-  }
-
-  &:hover{
-    img{
-      transform: rotate(10deg);
-    }
-
-    &::after{
-      background-color:rgb(3, 53, 154);
-    }
-  }
-}
 
 
 p{
@@ -225,6 +197,94 @@ input,select{
     font-size: 1.5rem;
     line-height: 1;
   }
+}
+
+/* Styles pour l'animation du scratch SVG dans le menu */
+
+.logo-wrapper{
+  position: relative;
+  img{
+  transition: all 0.3s ease;
+
+  }
+
+  &::after{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color:rgba(255, 255, 255, 0);
+    mix-blend-mode:color;
+  }
+
+  &:hover{
+    img{
+      transform: rotate(10deg);
+    }
+
+    &::after{
+      background-color:rgb(3, 53, 154);
+    }
+  }
+
+  transition: color 0.3s ease;
+
+  &:hover{
+    /* color: #87134f; */
+  }
+}
+
+
+.menu-link {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  transition: color 0.3s ease;
+
+  &:hover{
+    color: #87134f;
+  }
+}
+
+
+.menu-scratch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  width: 50%;
+  height: auto;
+  pointer-events: none;
+  fill: url(#gradient);
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+
+.menu-scratch path,
+.logo-wrapper path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  transition: stroke-dashoffset 1s ease-out;
+
+}
+
+.menu-link:hover .menu-scratch path,
+.logo-wrapper:hover .menu-scratch path {
+  stroke-dashoffset: 0;
+}
+
+.menu-link:not(:hover) .menu-scratch path {
+  stroke-dashoffset: 1000;
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+.logo-wrapper:not(:hover) .menu-scratch path {
+  stroke-dashoffset: 1000;
+  transition: stroke-dashoffset 1s ease-out;
 }
 
 /* Styles pour la grille masonry personnalisée */

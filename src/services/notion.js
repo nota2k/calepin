@@ -1,5 +1,5 @@
-// Utilise le proxy Vite configuré dans vite.config.js pour éviter les problèmes CORS
-const NOTION_API_BASE = '/api/notion'
+// Utilise directement l'API Notion
+const NOTION_API_BASE = 'https://api.notion.com/v1'
 
 /**
  * Nettoie l'ID d'une base de données (enlève les tirets)
@@ -9,8 +9,15 @@ function cleanDatabaseId(id) {
 }
 
 /**
- * Effectue une requête à l'API Notion via le proxy Vite
- * Le proxy gère automatiquement l'authentification via VITE_NOTION_SECRET
+ * Récupère la clé API Notion depuis les variables d'environnement
+ */
+function getNotionSecret() {
+  return import.meta.env.VITE_NOTION_SECRET || ''
+}
+
+/**
+ * Effectue une requête directe à l'API Notion
+ * L'authentification est gérée via VITE_NOTION_SECRET
  */
 async function notionRequest(endpoint, options = {}) {
   // Nettoyer l'ID de la base de données si présent dans l'endpoint
@@ -21,21 +28,20 @@ async function notionRequest(endpoint, options = {}) {
     })
   }
 
+  const secret = getNotionSecret()
+  if (!secret) {
+    throw new Error('VITE_NOTION_SECRET n\'est pas configuré. Veuillez définir cette variable d\'environnement.')
+  }
+
   const response = await fetch(`${NOTION_API_BASE}${cleanEndpoint}`, {
     ...options,
     headers: {
+      'Authorization': `Bearer ${secret}`,
+      'Notion-Version': '2022-06-28',
       'Content-Type': 'application/json',
       ...options.headers
     }
   })
-
-  // Vérifier si la réponse est du HTML au lieu de JSON (problème de proxy)
-  const contentType = response.headers.get('content-type') || ''
-  if (contentType.includes('text/html')) {
-    const text = await response.text()
-    console.error('❌ Réponse HTML reçue au lieu de JSON:', text.substring(0, 200))
-    throw new Error('Le proxy API ne fonctionne pas correctement. Vérifiez la configuration du serveur.')
-  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))

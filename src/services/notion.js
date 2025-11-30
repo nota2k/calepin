@@ -763,6 +763,7 @@ function transformPageToCard(page, databaseInfo = null) {
     genre: null,
     genreClass: null, // Classe CSS formatée pour le genre
     dateAjoute: null,
+    createdTime: null, // Date de création ISO pour le tri
     like: false, // Propriété "like" (checkbox)
     note: null,
     databaseName: databaseInfo?.title || 'Base de données',
@@ -833,16 +834,6 @@ function transformPageToCard(page, databaseInfo = null) {
         // On extrait même si la valeur est false
         card.like = prop.value === true || prop.value === 'true'
       }
-      else if ((keyLower.includes('date') || keyLower.includes('ajout') || keyLower.includes('créé')) && prop.value) {
-        if (prop.type === 'date' && prop.value.start) {
-          const date = new Date(prop.value.start)
-          card.dateAjoute = date.toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          })
-        }
-      }
     }
 
     // Si pas de titre trouvé, chercher la première propriété title
@@ -855,14 +846,16 @@ function transformPageToCard(page, databaseInfo = null) {
       }
     }
 
-    // Si pas de date trouvée, utiliser created_time
-    if (!card.dateAjoute && page.created_time) {
+    // Toujours utiliser created_time pour la date de création
+    if (page.created_time) {
       const date = new Date(page.created_time)
       card.dateAjoute = date.toLocaleDateString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
       })
+      // Stocker aussi la date ISO pour le tri
+      card.createdTime = page.created_time
     }
   }
 

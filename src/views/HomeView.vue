@@ -141,7 +141,7 @@ const availableSources = computed(() => {
   return Array.from(sources).sort()
 })
 
-// Filtrer les cards selon le genre et la source sélectionnés
+// Filtrer les cards selon le genre et la source sélectionnés, puis trier par date de création
 const filteredCards = computed(() => {
   let filtered = cards.value
 
@@ -165,6 +165,24 @@ const filteredCards = computed(() => {
       return source === selectedSource.value
     })
   }
+
+  // Trier par date de création (du plus récent au plus ancien)
+  filtered = filtered.sort((a, b) => {
+    // Si les deux ont une date de création
+    if (a.createdTime && b.createdTime) {
+      return new Date(b.createdTime) - new Date(a.createdTime)
+    }
+    // Si seulement a a une date, le mettre en premier
+    if (a.createdTime && !b.createdTime) {
+      return -1
+    }
+    // Si seulement b a une date, le mettre en premier
+    if (!a.createdTime && b.createdTime) {
+      return 1
+    }
+    // Si aucun n'a de date, garder l'ordre original
+    return 0
+  })
 
   return filtered
 })

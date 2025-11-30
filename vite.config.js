@@ -6,12 +6,15 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const isDev = mode === 'development'
+  const enableDevTools = process.env.ENABLE_DEVTOOLS !== 'false'
+
   return {
   plugins: [
     vue(),
     // Désactivez vueDevTools en production ou sur l'hébergement
-    ...(import.meta.env.DEV && import.meta.env.ENABLE_DEVTOOLS !== 'false'
+    ...(isDev && enableDevTools
       ? [vueDevTools()]
       : []),
     tailwindcss(),

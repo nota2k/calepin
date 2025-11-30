@@ -6,18 +6,14 @@ import { RouterLink, RouterView } from 'vue-router'
   <div class="min-h-screen flex flex-col">
     <!-- Header avec menu -->
     <header class="bg-white shadow-md sticky top-0 z-50">
-      <nav class="container mx-auto px-4 py-4">
+      <nav class="container mx-auto px-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
+          <RouterLink to="/" class="flex items-center space-x-2 logo-wrapper">
             <img alt="Logo" src="@/assets/logo-calepin.svg" class="h-20 w-20" />
             <span class="text-xl font-bold text-gray-800">Calepin</span>
-          </div>
+          </RouterLink>
 
           <div class="hidden md:flex items-center space-x-6">
-            <RouterLink to="/" class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              active-class="text-blue-600">
-              Accueil
-            </RouterLink>
             <RouterLink to="/databases" class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
               active-class="text-blue-600">
               Bases de données

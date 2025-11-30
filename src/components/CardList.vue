@@ -59,12 +59,18 @@ const sourceDisplay = computed(() => {
       <!-- Icône de lien -->
       <span v-if="sourceDisplay.text" class="text-xs text-slate-500 font-normal source"
         :data-source="sourceDisplay.dataValue">{{ sourceDisplay.text }}</span>
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+      <svg v-if="card.databaseName === 'Musique'" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round"
+        class="flex-shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors lucide lucide-circle-play-icon lucide-circle-play">
+        <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
+        <circle cx="12" cy="12" r="10" />
+      </svg>
+      <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-        class="flex-shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-        <polyline points="15 3 21 3 21 9"></polyline>
-        <line x1="10" y1="14" x2="21" y2="3"></line>
+        class="flex-shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors lucide lucide-link-icon lucide-link">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
     </div>
   </a>

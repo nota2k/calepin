@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "server.js",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
@@ -12,6 +13,7 @@
     "dev:hosting": "NODE_OPTIONS='--max-old-space-size=256' IS_SHARED_HOSTING=true ENABLE_DEVTOOLS=false vite",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "node server.js",
     "test:unit": "vitest",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/"
@@ -19,6 +21,7 @@
   "dependencies": {
     "@notionhq/client": "^2.2.17",
     "@tailwindcss/vite": "^4.1.17",
+    "express": "^4.18.2",
     "pinia": "^3.0.4",
     "tom-select": "^2.4.3",
     "vue": "^3.5.25",

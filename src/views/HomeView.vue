@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { fetchMultipleNotionDatabases, formatCardTitle } from '@/services/notion'
+import { fetchMultipleNotionDatabases } from '@/services/notion'
 
 const cards = ref([])
 const loading = ref(true)
@@ -11,8 +11,7 @@ onMounted(async () => {
     loading.value = true
     error.value = null
 
-    // La fonction fetchMultipleNotionDatabases parse automatiquement
-    // la configuration depuis les variables d'environnement
+    // La fonction fetchMultipleNotionDatabases retourne maintenant une card par page
     const fetchedCards = await fetchMultipleNotionDatabases()
 
     if (fetchedCards && fetchedCards.length > 0) {
@@ -65,32 +64,48 @@ onMounted(async () => {
 
     <!-- Grille de cards -->
     <div v-else-if="cards.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div
+      <a
         v-for="card in cards"
         :key="card.id"
-        class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group cursor-pointer"
+        :href="card.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="bg-gray-100 rounded-b-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[200px] group"
       >
-        <div :class="[card.color, 'h-32 flex items-center justify-center']">
-          <span class="text-6xl transform group-hover:scale-110 transition-transform duration-300">
-            {{ card.icon }}
-          </span>
+        <!-- Header avec le nom de la base de données -->
+        <div
+          class="text-white text-center py-3 px-4 font-medium"
+          :style="{ backgroundColor: card.databaseColor }"
+        >
+          {{ card.databaseName }}
         </div>
-        <div class="p-6">
-          <h3 class="text-xl font-semibold text-gray-800 mb-2">{{ formatCardTitle(card) }}</h3>
-          <p class="text-gray-600 text-sm leading-relaxed">{{ card.description }}</p>
-          <a
-            v-if="card.url"
-            :href="card.url"
-            target="_blank"
-            class="mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center group-hover:translate-x-1 transition-transform duration-300"
-          >
-            En savoir plus
-            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+
+        <!-- Corps de la card -->
+        <div class="p-6 flex flex-col justify-between flex-1">
+          <div class="flex-1">
+            <!-- Titre -->
+            <h3 class="text-xl font-normal text-black mb-2">{{ card.titre }}</h3>
+
+            <!-- Artiste (si disponible) -->
+            <p v-if="card.artiste" class="text-xl font-bold text-black mb-3">{{ card.artiste }}</p>
+
+            <!-- Genre (tag rouge) -->
+            <span
+              v-if="card.genre"
+              class="inline-block bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium"
+            >
+              {{ card.genre }}
+            </span>
+          </div>
+
+          <!-- Date en bas à droite -->
+          <div class="mt-4 text-right">
+            <p v-if="card.dateAjoute" class="text-sm font-normal text-black">
+              Ajouté le : {{ card.dateAjoute }}
+            </p>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
 
     <!-- Message si aucune card -->

@@ -65,38 +65,24 @@ $method = $_SERVER['REQUEST_METHOD'];
 // Initialiser cURL
 $ch = curl_init($notionApiUrl);
 
-// Préparer les en-têtes pour la requête vers Notion
-$headers = [
-    'Notion-Version: 2022-06-28',
-    'Content-Type: application/json'
-];
+// Récupérer la clé API Notion depuis les variables d'environnement
+$notionSecret = getenv('NOTION_SECRET') ?: getenv('VITE_NOTION_SECRET');
 
-// Transmettre l'en-tête Authorization du client s'il existe
-$authorizationHeader = null;
-if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $authorizationHeader = $_SERVER['HTTP_AUTHORIZATION'];
-} elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-    // Certains serveurs mettent Authorization dans REDIRECT_HTTP_AUTHORIZATION
-    $authorizationHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-} else {
-    // Si pas d'Authorization, essayer de la récupérer depuis les headers
-    $allHeaders = getallheaders();
-    if (isset($allHeaders['Authorization'])) {
-        $authorizationHeader = $allHeaders['Authorization'];
-    }
-}
-
-// Vérifier si l'en-tête Authorization est présent
-if (!$authorizationHeader) {
-    http_response_code(401);
+if (empty($notionSecret)) {
+    http_response_code(500);
     echo json_encode([
-        'error' => 'Authorization header missing',
-        'message' => 'L\'en-tête Authorization est manquant. Vérifiez que VITE_NOTION_SECRET est défini dans votre fichier .env et que l\'application a été rebuild.'
+        'error' => 'NOTION_SECRET not configured',
+        'message' => 'Please configure NOTION_SECRET or VITE_NOTION_SECRET as environment variable on the server'
     ]);
     exit;
 }
 
-$headers[] = 'Authorization: ' . $authorizationHeader;
+// Préparer les en-têtes pour la requête vers Notion
+$headers = [
+    'Authorization: Bearer ' . $notionSecret,
+    'Notion-Version: 2022-06-28',
+    'Content-Type: application/json'
+];
 
 // Configurer les options cURL
 $curlOptions = [

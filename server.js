@@ -1,7 +1,7 @@
 /**
  * Proxy CORS pour l'API Notion
- * Transmet les requêtes vers l'API Notion en ajoutant les en-têtes CORS
- * La clé API est envoyée depuis le client (pas de protection côté serveur)
+ * Gère les requêtes vers l'API Notion côté serveur pour éviter les problèmes CORS
+ * et protéger la clé API
  */
 
 /* eslint-env node */
@@ -55,13 +55,27 @@ app.use((req, res, next) => {
 // Middleware pour parser le JSON
 app.use(express.json())
 
+// Récupérer la clé API Notion depuis les variables d'environnement
+const NOTION_SECRET = process.env.NOTION_SECRET || process.env.VITE_NOTION_SECRET
+
+if (!NOTION_SECRET) {
+  console.error('❌ ERREUR: NOTION_SECRET ou VITE_NOTION_SECRET n\'est pas défini')
+  console.error('   Veuillez définir cette variable d\'environnement avant de démarrer le serveur')
+  console.error('   💡 Créez un fichier .env à la racine du projet avec:')
+  console.error('      VITE_NOTION_SECRET=votre_cle_api_notion')
+  console.error('   💡 Ou définissez la variable d\'environnement:')
+  console.error('      export VITE_NOTION_SECRET=votre_cle_api_notion')
+
+  process.exit(1)
+}
+
 /**
- * Proxy CORS pour les requêtes vers l'API Notion
- * Transmet les requêtes en préservant les en-têtes d'authentification du client
+ * Proxy pour les requêtes vers l'API Notion
  */
 app.use('/api/notion', async (req, res) => {
   try {
     // Extraire le chemin de l'endpoint Notion depuis l'URL originale
+    // req.path contient le chemin après /api/notion
     let endpoint = req.path
 
     // Si le chemin commence par /api/notion, l'enlever
@@ -84,18 +98,13 @@ app.use('/api/notion', async (req, res) => {
     }
 
     // Préparer les options de la requête
-    // On transmet les en-têtes du client (y compris Authorization)
     const fetchOptions = {
       method: req.method,
       headers: {
-        'Notion-Version': req.headers['notion-version'] || '2022-06-28',
+        'Authorization': `Bearer ${NOTION_SECRET}`,
+        'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       }
-    }
-
-    // Transmettre l'en-tête Authorization du client s'il existe
-    if (req.headers.authorization) {
-      fetchOptions.headers['Authorization'] = req.headers.authorization
     }
 
     // Ajouter le corps de la requête pour POST, PUT, PATCH
@@ -148,9 +157,8 @@ if (process.env.NODE_ENV === 'production') {
 
 // Démarrer le serveur
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur proxy CORS démarré sur le port ${PORT}`)
+  console.log(`🚀 Serveur démarré sur le port ${PORT}`)
   console.log(`📡 Proxy API Notion disponible sur /api/notion`)
-  console.log(`⚠️  La clé API est envoyée depuis le client (pas de protection côté serveur)`)
 
   if (process.env.NODE_ENV === 'production') {
     console.log(`📦 Servant les fichiers statiques depuis /dist`)

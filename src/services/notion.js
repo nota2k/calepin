@@ -1,11 +1,6 @@
 // Utilise un proxy CORS pour contourner les restrictions CORS de l'API Notion
-// La clé API est envoyée depuis le client (visible dans le code JavaScript)
+// La clé API est gérée côté serveur par le proxy (Express en dev, PHP en prod)
 const NOTION_API_BASE = '/api/notion'
-const NOTION_SECRET = import.meta.env.VITE_NOTION_SECRET
-
-if (!NOTION_SECRET) {
-  console.warn('⚠️ VITE_NOTION_SECRET n\'est pas défini dans les variables d\'environnement')
-}
 
 /**
  * Nettoie l'ID d'une base de données en supprimant les tirets
@@ -19,8 +14,7 @@ function cleanDatabaseId(id) {
 
 /**
  * Effectue une requête à l'API Notion via un proxy CORS
- * Le proxy ajoute les en-têtes CORS nécessaires mais transmet la clé API du client
- * ⚠️ La clé API est envoyée depuis le client (visible dans le code JavaScript)
+ * Le proxy gère l'authentification côté serveur (clé API stockée sur le serveur)
  * @param {string} endpoint - L'endpoint de l'API Notion (ex: '/search', '/databases/{id}')
  * @param {Object} options - Options de la requête fetch (method, body, headers, etc.)
  * @param {string} [options.method='GET'] - Méthode HTTP (GET, POST, PUT, DELETE, etc.)
@@ -31,10 +25,6 @@ function cleanDatabaseId(id) {
  * @private
  */
 async function notionRequest(endpoint, options = {}) {
-  if (!NOTION_SECRET) {
-    throw new Error('VITE_NOTION_SECRET n\'est pas défini. Ajoutez-le dans votre fichier .env')
-  }
-
   // Nettoyer l'ID de la base de données si présent dans l'endpoint
   let cleanEndpoint = endpoint
   if (endpoint.includes('/databases/')) {
@@ -49,8 +39,6 @@ async function notionRequest(endpoint, options = {}) {
   const response = await fetch(fullUrl, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${NOTION_SECRET}`,
-      'Notion-Version': '2022-06-28',
       'Content-Type': 'application/json',
       ...options.headers
     }

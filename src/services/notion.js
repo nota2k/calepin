@@ -711,12 +711,15 @@ function transformPageToCard(page, databaseInfo = null) {
     genre: null,
     genreClass: null, // Classe CSS formatée pour le genre
     dateAjoute: null,
+    like: false, // Propriété "like" (checkbox)
     databaseName: databaseInfo?.title || 'Base de données',
     databaseColor: databaseInfo?.color || '#6B7280'
   }
 
   // Extraire les propriétés de la page
   if (page.properties) {
+    // Debug: afficher toutes les propriétés disponibles
+
     // Chercher "Titre" (insensible à la casse)
     for (const [key, prop] of Object.entries(page.properties)) {
       const keyLower = key.toLowerCase()
@@ -747,6 +750,11 @@ function transformPageToCard(page, databaseInfo = null) {
           // Si c'est du rich_text, essayer de l'utiliser comme URL
           card.url = prop.value
         }
+      } else if (keyLower === 'like' && prop.type === 'checkbox') {
+        // Extraire la propriété "like" (checkbox)
+        // prop.value est déjà un booléen (true/false) grâce à extractPropertyValue
+        // On extrait même si la valeur est false
+        card.like = prop.value === true || prop.value === 'true'
       } else if ((keyLower.includes('date') || keyLower.includes('ajout') || keyLower.includes('créé')) && prop.value) {
         if (prop.type === 'date' && prop.value.start) {
           const date = new Date(prop.value.start)
@@ -783,6 +791,11 @@ function transformPageToCard(page, databaseInfo = null) {
   // Si pas de titre, utiliser "Sans titre"
   if (!card.titre) {
     card.titre = 'Sans titre'
+  }
+
+  // S'assurer que like est toujours défini (booléen)
+  if (card.like === undefined || card.like === null) {
+    card.like = false
   }
 
   return card

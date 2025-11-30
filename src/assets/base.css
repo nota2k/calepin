@@ -197,3 +197,17 @@ input,select{
   }
 }
 
+.infos{
+  position: relative;
+}
+
+.like{
+  position:absolute;
+  bottom: 10px;
+  left: 10px;
+
+  svg{
+    width: 25px;
+    height: 25px;
+  }
+}

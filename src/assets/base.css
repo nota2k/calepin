@@ -146,3 +146,13 @@ button{
     color: #000;
   }
 }
+
+input,select{
+  font-family: 'Roboto', sans-serif;
+  line-height: 1.2;
+  margin-bottom: 0;
+  border: 1px solid #000;
+  border-radius: 0.2rem;
+  background-color: #fff;
+  padding: 0.5rem;
+}

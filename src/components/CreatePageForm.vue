@@ -340,7 +340,7 @@ const emit = defineEmits(['page-created'])
         <button type="submit" :disabled="!selectedDatabaseId || submitting || loading"
           class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           <span v-if="submitting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-          <span>{{ submitting ? 'Création...' : 'Créer la page' }}</span>
+          <span>{{ submitting ? 'Création...' : 'Créer l\'entrée' }}</span>
         </button>
       </div>
     </form>

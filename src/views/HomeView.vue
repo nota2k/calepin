@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { fetchMultipleNotionDatabases, getDatabasesMetadata } from '@/services/notion'
-import { getCachedCards, setCachedCards, setCachedMetadata, hasDatabasesChanged } from '@/services/cache'
+import { getCachedCards, setCachedCards, setCachedMetadata, hasDatabasesChanged, clearCache } from '@/services/cache'
 import CardGrid from '@/components/CardGrid.vue'
 import CardList from '@/components/CardList.vue'
+import CreatePageForm from '@/components/CreatePageForm.vue'
 
 const cards = ref([])
 const loading = ref(true)
@@ -13,6 +14,13 @@ const isRefreshing = ref(false) // Pour indiquer un rafraîchissement en arrièr
 
 function toggleViewMode() {
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+}
+
+function handlePageCreated() {
+  // Nettoyer le cache pour forcer le rechargement
+  clearCache()
+  // Recharger les cards
+  loadCards()
 }
 
 async function loadCards() {
@@ -111,6 +119,9 @@ onMounted(async () => {
         </button>
       </div>
     </div>
+
+    <!-- Formulaire de création de page -->
+    <CreatePageForm v-if="!loading" @page-created="handlePageCreated" />
 
     <!-- État de chargement -->
     <div v-if="loading" class="flex justify-center items-center py-12">

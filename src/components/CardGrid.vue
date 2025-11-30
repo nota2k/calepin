@@ -27,11 +27,12 @@ defineProps({
       <div class="flex-1">
         <!-- Titre -->
         <div class="flex items-baseline justify-start gap-2 border-b border-slate-400 pb-1 mb-4">
-          <h3 class="text-xl font-normal text-black mb-2 text-slate-500">{{ card.titre }}</h3>
+          <h3 class="text-xl font-normal text-black mb-2 text-slate-500">{{ card.titre }}<strong v-if="card.artiste"
+              class="text-xl font-bold text-black mb-3 text-slate-700"> - {{
+                card.artiste }}</strong></h3>
 
           <!-- Artiste (si disponible) -->
-          <p v-if="card.artiste" class="text-xl font-bold text-black mb-3 text-slate-700"> - {{
-            card.artiste }}</p>
+
         </div>
         <!-- Genre (tag rouge) -->
         <span v-if="card.genre" :class="[

@@ -574,6 +574,64 @@ export async function fetchMultipleNotionDatabases() {
 }
 
 /**
+ * Récupère les propriétés d'une base de données
+ */
+export async function getDatabaseProperties(databaseId) {
+  try {
+    const cleanId = cleanDatabaseId(databaseId)
+    const dbDetails = await notionRequest(`/databases/${cleanId}`)
+
+    // Extraire les options pour les propriétés select et multi_select
+    const properties = {}
+    for (const [key, prop] of Object.entries(dbDetails.properties || {})) {
+      properties[key] = {
+        type: prop.type,
+        options: null
+      }
+
+      if (prop.type === 'select' && prop.select?.options) {
+        properties[key].options = prop.select.options
+      } else if (prop.type === 'multi_select' && prop.multi_select?.options) {
+        properties[key].options = prop.multi_select.options
+      }
+    }
+
+    return {
+      id: dbDetails.id,
+      title: dbDetails.title?.[0]?.plain_text || 'Sans titre',
+      properties: properties
+    }
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des propriétés de la base de données:`, error)
+    throw error
+  }
+}
+
+/**
+ * Crée une page dans une base de données Notion
+ */
+export async function createPageInDatabase(databaseId, properties) {
+  try {
+    const cleanId = cleanDatabaseId(databaseId)
+
+    const response = await notionRequest(`/pages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        parent: {
+          database_id: cleanId
+        },
+        properties: properties
+      })
+    })
+
+    return response
+  } catch (error) {
+    console.error('Erreur lors de la création de la page:', error)
+    throw error
+  }
+}
+
+/**
  * Formate le titre d'une card pour l'affichage
  */
 export function formatCardTitle(card) {

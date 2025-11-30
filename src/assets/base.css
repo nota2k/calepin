@@ -98,13 +98,30 @@ p{
   font-size: 0.8rem;
 }
 
-.group{
+.group:not{
   height:fit-content;
+  background: white;
+  /* border-top: 2px solid black;
+  border-left: 1px dashed black;
+  border-right: 1px dashed black;
+  border-bottom: 1px dashed black; */
+
   h2,h3,h4,h5,h6{
     font-family: 'MistralSCITC', sans-serif;
     font-size: 1.8rem;
     line-height: 1.2;
     margin-bottom: 0;
+  }
+}
+
+.masonry-grid{
+  .group{
+    background: white;
+    box-shadow: 0 2px 5px 3px rgba(0, 0, 0, 0.1);
+    border-top: 3px solid black;
+    border-left: 1px dashed black;
+    border-right: 1px dashed black;
+    border-bottom: 1px dashed black;
   }
 }
 

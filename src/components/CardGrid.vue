@@ -34,7 +34,7 @@ const sourceDisplay = computed(() => {
   <a :href="card.url" target="_blank" rel="noopener noreferrer" :class="[
     'hover:shadow-lg transition-all duration-300 group',
     viewMode === 'grid'
-      ? 'flex flex-col min-h-[100px] border border-gray-900'
+      ? 'flex flex-col min-h-[100px] grid-layout'
       : 'flex items-center gap-10 p-4 border-b-1 border-gray-900'
   ]">
     <!-- Header avec le nom de la base de données -->
@@ -81,8 +81,8 @@ const sourceDisplay = computed(() => {
           <div class="flex flex-col justify-end gap-2 border-b-2 border-gray-500 mb-4 min-h-[80px]">
             <h3 class="text-3xl font-normal text-black mb-2 text-slate-500">
               {{ card.titre }}
-              <strong v-if="card.artiste" class="text-3xl font-bold text-black mb-3 text-slate-700"> - {{ card.artiste
-                }}</strong>
+              <p v-if="card.artiste" class="text-3xl font-bold text-black mb-3 text-slate-700">{{ card.artiste
+              }}</p>
             </h3>
           </div>
 
@@ -128,11 +128,11 @@ const sourceDisplay = computed(() => {
           </span>
 
           <!-- 2. Titre et Artiste -->
-          <div class="flex items-baseline gap-2 grow-3 min-w-[60%]">
+          <div class="flex items-baseline gap-2 grow-3 shrink-2 min-w-[50%]">
             <h3 class="text-lg font-normal text-black text-slate-500">
               {{ card.titre }}
               <strong v-if="card.artiste" class="text-lg font-bold text-black text-slate-700"> - {{ card.artiste
-              }}</strong>
+                }}</strong>
             </h3>
           </div>
 

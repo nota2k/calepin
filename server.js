@@ -1,5 +1,5 @@
 /**
- * Proxy CORS pour l'API Notion
+ * Service backend pour l'API Notion utilisant le SDK officiel
  * Gère les requêtes vers l'API Notion côté serveur pour éviter les problèmes CORS
  * et protéger la clé API
  */
@@ -7,6 +7,7 @@
 /* eslint-env node */
 /* global process */
 import express from 'express'
+import { Client } from '@notionhq/client'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { readFileSync } from 'fs'
@@ -69,13 +70,18 @@ if (!NOTION_SECRET) {
   process.exit(1)
 }
 
+// Initialiser le client Notion avec le SDK officiel
+const notion = new Client({
+  auth: NOTION_SECRET
+})
+
 /**
- * Proxy pour les requêtes vers l'API Notion
+ * Service backend utilisant le SDK Notion officiel
+ * Gère les requêtes vers l'API Notion via le SDK
  */
 app.use('/api/notion', async (req, res) => {
   try {
     // Extraire le chemin de l'endpoint Notion depuis l'URL originale
-    // req.path contient le chemin après /api/notion
     let endpoint = req.path
 
     // Si le chemin commence par /api/notion, l'enlever
@@ -88,58 +94,78 @@ app.use('/api/notion', async (req, res) => {
       endpoint = `/${endpoint}`
     }
 
-    // Construire l'URL complète de l'API Notion
-    let notionUrl = `https://api.notion.com/v1${endpoint}`
+    let result
 
-    // Ajouter les paramètres de requête s'il y en a
-    if (Object.keys(req.query).length > 0) {
-      const queryString = new URLSearchParams(req.query).toString()
-      notionUrl += `?${queryString}`
-    }
+    // Router les requêtes selon l'endpoint
+    if (endpoint === '/search' && req.method === 'POST') {
+      // Recherche de bases de données ou pages
+      result = await notion.search(req.body)
+    } else if (endpoint.startsWith('/databases/')) {
+      const databaseId = endpoint.replace('/databases/', '').split('/')[0].replace(/-/g, '')
 
-    // Préparer les options de la requête
-    const fetchOptions = {
-      method: req.method,
-      headers: {
-        'Authorization': `Bearer ${NOTION_SECRET}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
+      if (endpoint.endsWith('/query') && req.method === 'POST') {
+        // Interroger une base de données
+        result = await notion.databases.query({
+          database_id: databaseId,
+          ...req.body
+        })
+      } else if (req.method === 'GET') {
+        // Récupérer les informations d'une base de données
+        result = await notion.databases.retrieve({
+          database_id: databaseId
+        })
+      } else {
+        throw new Error(`Méthode ${req.method} non supportée pour ${endpoint}`)
       }
-    }
+    } else if (endpoint === '/pages' && req.method === 'POST') {
+      // Créer une page
+      result = await notion.pages.create(req.body)
+    } else if (endpoint.startsWith('/pages/')) {
+      const pageId = endpoint.replace('/pages/', '').split('/')[0].replace(/-/g, '')
 
-    // Ajouter le corps de la requête pour POST, PUT, PATCH
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-      fetchOptions.body = JSON.stringify(req.body)
-    }
-
-    // Effectuer la requête vers l'API Notion
-    const response = await fetch(notionUrl, fetchOptions)
-
-    // Récupérer le contenu de la réponse
-    const contentType = response.headers.get('content-type') || ''
-    let data
-
-    if (contentType.includes('application/json')) {
-      data = await response.json()
+      if (req.method === 'GET') {
+        // Récupérer une page
+        result = await notion.pages.retrieve({
+          page_id: pageId
+        })
+      } else {
+        throw new Error(`Méthode ${req.method} non supportée pour ${endpoint}`)
+      }
     } else {
-      data = await response.text()
+      throw new Error(`Endpoint ${endpoint} avec méthode ${req.method} non supporté`)
     }
 
-    // Retourner la réponse avec le même code HTTP
-    res.status(response.status)
-
-    if (contentType.includes('application/json')) {
-      res.json(data)
-    } else {
-      res.set('Content-Type', contentType)
-      res.send(data)
-    }
+    // Retourner la réponse
+    res.json(result)
   } catch (error) {
     console.error('Erreur lors de la requête vers l\'API Notion:', error)
-    res.status(500).json({
-      error: 'Erreur serveur',
-      message: error.message
-    })
+    console.error('Endpoint:', req.path)
+    console.error('Méthode:', req.method)
+    console.error('Body:', req.body)
+
+    // Gérer les erreurs du SDK Notion
+    // Le SDK Notion peut lever des erreurs avec des propriétés spécifiques
+    if (error.code) {
+      // Erreur API Notion (ex: APIResponseError)
+      const statusCode = error.status || error.statusCode || 500
+      res.status(statusCode).json({
+        error: error.code,
+        message: error.message,
+        ...(error.body && { details: error.body })
+      })
+    } else if (error.message) {
+      // Erreur générique
+      res.status(500).json({
+        error: 'Erreur serveur',
+        message: error.message
+      })
+    } else {
+      // Erreur inconnue
+      res.status(500).json({
+        error: 'Erreur serveur',
+        message: 'Une erreur inattendue s\'est produite'
+      })
+    }
   }
 })
 
@@ -158,7 +184,7 @@ if (process.env.NODE_ENV === 'production') {
 // Démarrer le serveur
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`)
-  console.log(`📡 Proxy API Notion disponible sur /api/notion`)
+  console.log(`📡 Service API Notion (SDK) disponible sur /api/notion`)
 
   if (process.env.NODE_ENV === 'production') {
     console.log(`📦 Servant les fichiers statiques depuis /dist`)

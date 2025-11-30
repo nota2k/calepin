@@ -17,6 +17,14 @@ export default defineConfig({
     // Réduire les options du serveur pour économiser la mémoire
     hmr: {
       overlay: false // Désactive l'overlay d'erreur pour économiser la mémoire
+    },
+    // Proxy pour rediriger les requêtes API vers le serveur Express
+    proxy: {
+      '/api/notion': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   // Optimisations pour réduire la mémoire

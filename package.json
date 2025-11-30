@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=512' vite",
+    "dev:server": "node server.js",
     "dev:light": "NODE_OPTIONS='--max-old-space-size=256' NODE_ENV=development ENABLE_DEVTOOLS=false vite",
     "dev:hosting": "NODE_OPTIONS='--max-old-space-size=256' IS_SHARED_HOSTING=true ENABLE_DEVTOOLS=false vite",
     "build": "vite build",

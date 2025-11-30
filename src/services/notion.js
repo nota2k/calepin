@@ -1,5 +1,6 @@
-// Utilise un proxy CORS pour contourner les restrictions CORS de l'API Notion
-// La clé API est gérée côté serveur par le proxy (Express en dev, PHP en prod)
+// Service backend utilisant le SDK Notion officiel
+// La clé API est gérée côté serveur par le service backend (Express en dev, PHP en prod)
+// Le service backend utilise @notionhq/client pour communiquer avec l'API Notion
 const NOTION_API_BASE = '/api/notion'
 
 /**
@@ -13,8 +14,9 @@ function cleanDatabaseId(id) {
 }
 
 /**
- * Effectue une requête à l'API Notion via un proxy CORS
- * Le proxy gère l'authentification côté serveur (clé API stockée sur le serveur)
+ * Effectue une requête à l'API Notion via le service backend
+ * Le service backend utilise le SDK Notion officiel (@notionhq/client)
+ * L'authentification est gérée côté serveur (clé API stockée sur le serveur)
  * @param {string} endpoint - L'endpoint de l'API Notion (ex: '/search', '/databases/{id}')
  * @param {Object} options - Options de la requête fetch (method, body, headers, etc.)
  * @param {string} [options.method='GET'] - Méthode HTTP (GET, POST, PUT, DELETE, etc.)

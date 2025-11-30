@@ -9,9 +9,9 @@ defineProps({
 
 <template>
   <a :href="card.url" target="_blank" rel="noopener noreferrer"
-    class="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[100px] group border border-gray-900 border-2">
+    class="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col min-h-[100px] group border border-gray-900 border-1">
     <!-- Header avec le nom de la base de données -->
-    <div class="database flex items-center justify-between py-2 px-4 font-medium">
+    <div class="database flex items-center justify-between py-4 px-4 font-medium">
       <span class="text-xl text-slate-700 font-semibold highlight text-2xl"
         :style="{ '--highlight-color': card.databaseColor }">{{
           card.databaseName }}</span>

@@ -124,30 +124,6 @@ onMounted(async () => {
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Bienvenue</h1>
         <p class="text-gray-600">Découvrez nos fonctionnalités</p>
       </div>
-
-      <!-- Bouton de bascule vue grille/liste -->
-      <div v-if="!loading && !error && cards.length > 0" class="flex items-center gap-2">
-        <button @click="toggleViewMode"
-          class="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
-          :title="viewMode === 'grid' ? 'Passer en vue liste' : 'Passer en vue grille'">
-          <svg v-if="viewMode === 'grid'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-        </button>
-      </div>
     </div>
 
     <!-- Formulaire de création de page -->
@@ -175,7 +151,28 @@ onMounted(async () => {
         </button>
       </div>
     </div>
-
+    <!-- Bouton de bascule vue grille/liste -->
+    <div v-if="!loading && !error && cards.length > 0" class="flex justify-end items-center gap-2 mb-6">
+      <button @click="toggleViewMode" class="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
+        :title="viewMode === 'grid' ? 'Passer en vue liste' : 'Passer en vue grille'">
+        <svg v-if="viewMode === 'grid'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </button>
+    </div>
     <!-- État de chargement -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -211,12 +208,12 @@ onMounted(async () => {
 
     <!-- Vue grille -->
     <div v-else-if="filteredCards.length > 0 && viewMode === 'grid'"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
       <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" />
     </div>
 
     <!-- Vue liste -->
-    <div v-else-if="filteredCards.length > 0 && viewMode === 'list'" class="space-y-4">
+    <div v-else-if="filteredCards.length > 0 && viewMode === 'list'" class="space-y-2">
       <CardList v-for="card in filteredCards" :key="card.id" :card="card" />
     </div>
 

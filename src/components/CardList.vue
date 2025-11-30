@@ -9,7 +9,7 @@ defineProps({
 
 <template>
   <a :href="card.url" target="_blank" rel="noopener noreferrer"
-    class="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex items-center gap-4 p-4 group">
+    class="overflow-hidden hover:shadow-lg transition-all duration-300 flex items-center gap-10 p-4 group border-gray-900 border-b-1">
     <!-- Header avec le nom de la base de données (vertical) -->
     <div class="flex-shrink-0 w-32 py-4 px-3 font-medium rounded-lg text-center">
       <span class="text-slate-700 font-semibold text-sm highlight"

@@ -392,6 +392,7 @@ async function getDatabaseCardInfo(databaseName) {
     let color = 'bg-gray-600'
     let headerColor = '#6B7280' // Gris par défaut
     let displayName = databaseName
+    let icon = database.icon?.emoji || null
 
     if (databaseName.toLowerCase().includes('musique')) {
       headerColor = 'rgb(255 222 98)' // Rouge-brun pour Musique

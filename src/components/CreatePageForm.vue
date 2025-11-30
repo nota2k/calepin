@@ -15,6 +15,7 @@ const selectedDatabase = computed(() => {
 })
 
 const databaseProperties = ref({})
+
 const formFields = computed(() => {
   if (!selectedDatabase.value || !databaseProperties.value) return []
 
@@ -81,6 +82,7 @@ watch(selectedDatabaseId, async (newId) => {
     loading.value = false
   }
 })
+
 
 async function handleSubmit() {
   if (!selectedDatabaseId.value) {

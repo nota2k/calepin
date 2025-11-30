@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { fetchMultipleNotionDatabases, getDatabasesMetadata } from '@/services/notion'
 import { getCachedCards, setCachedCards, setCachedMetadata, hasDatabasesChanged, clearCache } from '@/services/cache'
 import CardGrid from '@/components/CardGrid.vue'
@@ -11,9 +11,39 @@ const loading = ref(true)
 const error = ref(null)
 const viewMode = ref('grid') // 'grid' ou 'list'
 const isRefreshing = ref(false) // Pour indiquer un rafraîchissement en arrière-plan
+const selectedGenre = ref(null) // Genre sélectionné pour le filtre
 
 function toggleViewMode() {
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+}
+
+// Extraire tous les genres uniques depuis les cards
+const availableGenres = computed(() => {
+  const genres = new Set()
+  cards.value.forEach(card => {
+    if (card.genre) {
+      genres.add(card.genre)
+    }
+  })
+  return Array.from(genres).sort()
+})
+
+// Filtrer les cards selon le genre sélectionné
+const filteredCards = computed(() => {
+  if (!selectedGenre.value) {
+    return cards.value
+  }
+  return cards.value.filter(card => card.genre === selectedGenre.value)
+})
+
+function toggleGenre(genre) {
+  if (selectedGenre.value === genre) {
+    // Désélectionner si déjà sélectionné
+    selectedGenre.value = null
+  } else {
+    // Sélectionner le genre
+    selectedGenre.value = genre
+  }
 }
 
 function handlePageCreated() {
@@ -123,6 +153,29 @@ onMounted(async () => {
     <!-- Formulaire de création de page -->
     <CreatePageForm v-if="!loading" @page-created="handlePageCreated" />
 
+    <!-- Filtres par genre -->
+    <div v-if="!loading && !error && availableGenres.length > 0" class="mb-6">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-medium text-gray-700">Filtrer par genre :</span>
+        <button @click="selectedGenre = null" :class="[
+          'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+          selectedGenre === null
+            ? 'bg-gray-800 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        ]">
+          Tous
+        </button>
+        <button v-for="genre in availableGenres" :key="genre" @click="toggleGenre(genre)" :class="[
+          'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+          selectedGenre === genre
+            ? 'bg-red-500 text-white'
+            : 'bg-red-100 text-red-700 hover:bg-red-200'
+        ]">
+          {{ genre }}
+        </button>
+      </div>
+    </div>
+
     <!-- État de chargement -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -157,19 +210,27 @@ onMounted(async () => {
     </div>
 
     <!-- Vue grille -->
-    <div v-else-if="cards.length > 0 && viewMode === 'grid'"
+    <div v-else-if="filteredCards.length > 0 && viewMode === 'grid'"
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <CardGrid v-for="card in cards" :key="card.id" :card="card" />
+      <CardGrid v-for="card in filteredCards" :key="card.id" :card="card" />
     </div>
 
     <!-- Vue liste -->
-    <div v-else-if="cards.length > 0 && viewMode === 'list'" class="space-y-4">
-      <CardList v-for="card in cards" :key="card.id" :card="card" />
+    <div v-else-if="filteredCards.length > 0 && viewMode === 'list'" class="space-y-4">
+      <CardList v-for="card in filteredCards" :key="card.id" :card="card" />
     </div>
 
     <!-- Message si aucune card -->
-    <div v-else class="text-center py-12 text-gray-500">
+    <div v-else-if="cards.length === 0" class="text-center py-12 text-gray-500">
       <p>Aucune card disponible pour le moment.</p>
+    </div>
+
+    <!-- Message si aucun résultat avec le filtre -->
+    <div v-else-if="selectedGenre && filteredCards.length === 0" class="text-center py-12 text-gray-500">
+      <p>Aucune card trouvée pour le genre "{{ selectedGenre }}".</p>
+      <button @click="selectedGenre = null" class="mt-4 text-blue-600 hover:text-blue-800 underline">
+        Afficher tous les genres
+      </button>
     </div>
 
     <!-- Indicateur de rafraîchissement en arrière-plan -->

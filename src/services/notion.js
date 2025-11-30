@@ -350,12 +350,12 @@ async function getDatabaseCardInfo(databaseName) {
     let displayName = databaseName
 
     if (databaseName.toLowerCase().includes('musique')) {
-      headerColor = '#8B4513' // Rouge-brun pour Musique
+      headerColor = 'rgb(255 222 98)' // Rouge-brun pour Musique
       color = 'bg-[#8B4513]'
       icon = database.icon || '🎵'
       displayName = 'Musique'
     } else if (databaseName.toLowerCase().includes('web')) {
-      headerColor = '#9ACD32' // Jaune-vert pour Web
+      headerColor = 'rgb(39 150 231)' // Jaune-vert pour Web
       color = 'bg-[#9ACD32]'
       icon = database.icon || '🌐'
       displayName = 'Web'
@@ -395,6 +395,19 @@ async function getDatabaseCardInfo(databaseName) {
   }
 }
 
+function serializeForClass(value) {
+  if (!value || typeof value !== 'string') return ''
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize('NFD') // Normalise les caractères accentués
+    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+    .replace(/\s+/g, '-') // Remplace les espaces par des tirets
+    .replace(/[^a-z0-9-]/g, '') // Supprime les caractères spéciaux
+    .replace(/-+/g, '-') // Remplace plusieurs tirets consécutifs par un seul
+    .replace(/^-|-$/g, '') // Supprime les tirets en début/fin
+}
+
 /**
  * Transforme une page en card pour l'affichage
  */
@@ -405,6 +418,7 @@ function transformPageToCard(page, databaseInfo = null) {
     titre: null,
     artiste: null,
     genre: null,
+    genreClass: null, // Classe CSS formatée pour le genre
     dateAjoute: null,
     databaseName: databaseInfo?.title || 'Base de données',
     databaseColor: databaseInfo?.color || '#6B7280'
@@ -427,8 +441,10 @@ function transformPageToCard(page, databaseInfo = null) {
       } else if (keyLower === 'genre' && prop.value) {
         if (prop.type === 'select') {
           card.genre = prop.value
+          card.genreClass = serializeForClass(prop.value)
         } else if (prop.type === 'multi_select' && Array.isArray(prop.value) && prop.value.length > 0) {
           card.genre = prop.value[0] // Prendre le premier genre
+          card.genreClass = serializeForClass(prop.value[0])
         }
       } else if (keyLower === 'source' && prop.value) {
         // Utiliser la propriété "source" comme URL

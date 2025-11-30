@@ -1,9 +1,7 @@
-
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/bane2718/calepin/
-    - /bin/cp -R * $DEPLOYPATH
-    - cd $DEPLOYPATH
-    - /usr/bin/npm install
-    - /usr/bin/npm run build
+    - export DEPLOYPATH=/home/bane2718/calepin
+    - /bin/rm -rf $DEPLOYPATH/dist
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R dist/* $DEPLOYPATH/

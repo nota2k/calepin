@@ -14,7 +14,10 @@ export default defineConfig(({ mode }) => {
   return {
   plugins: [
     vue(),
-    vueDevTools(),
+    // Désactivez vueDevTools en production ou sur l'hébergement
+    ...(process.env.NODE_ENV === 'development' && process.env.ENABLE_DEVTOOLS !== 'false'
+      ? [vueDevTools()]
+      : []),
     tailwindcss(),
   ],
   resolve: {
@@ -23,6 +26,10 @@ export default defineConfig(({ mode }) => {
     },
   },
   server: {
+    // Réduire les options du serveur pour économiser la mémoire
+    hmr: {
+      overlay: false // Désactive l'overlay d'erreur pour économiser la mémoire
+    },
     proxy: {
       '/api/notion': {
         target: 'https://api.notion.com',
@@ -50,6 +57,21 @@ export default defineConfig(({ mode }) => {
             proxyReq.removeHeader('x-notion-secret')
             proxyReq.removeHeader('X-Notion-Secret')
           })
+        }
+      }
+    }
+  },
+  // Optimisations pour réduire la mémoire
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia']
+  },
+  build: {
+    // Options de build optimisées
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia']
         }
       }
     }

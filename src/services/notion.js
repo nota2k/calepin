@@ -29,6 +29,14 @@ async function notionRequest(endpoint, options = {}) {
     }
   })
 
+  // Vérifier si la réponse est du HTML au lieu de JSON (problème de proxy)
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    const text = await response.text()
+    console.error('❌ Réponse HTML reçue au lieu de JSON:', text.substring(0, 200))
+    throw new Error('Le proxy API ne fonctionne pas correctement. Vérifiez la configuration du serveur.')
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
     throw new Error(error.message || `Erreur HTTP ${response.status}`)
@@ -69,6 +77,91 @@ export async function listAllNotionDatabases() {
     return databases
   } catch (error) {
     console.error('Erreur lors de la récupération des bases de données:', error)
+    throw error
+  }
+}
+
+/**
+ * Liste toutes les pages Notion accessibles
+ */
+export async function listAllNotionPages() {
+  try {
+    let allPages = []
+    let hasMore = true
+    let nextCursor = null
+
+    while (hasMore) {
+      const requestBody = {
+        filter: {
+          property: 'object',
+          value: 'page'
+        },
+        sort: {
+          direction: 'descending',
+          timestamp: 'last_edited_time'
+        },
+        page_size: 100
+      }
+
+      if (nextCursor) {
+        requestBody.start_cursor = nextCursor
+      }
+
+      const data = await notionRequest('/search', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      })
+
+      const pages = (data.results || [])
+        .filter(page => !page.archived)
+        .map(page => {
+          // Extraire le titre
+          let title = 'Sans titre'
+          if (page.properties) {
+            // Chercher une propriété de type 'title'
+            for (const prop of Object.values(page.properties)) {
+              if (prop.type === 'title' && prop.title && prop.title.length > 0) {
+                title = prop.title[0].plain_text || 'Sans titre'
+                break
+              }
+            }
+          }
+
+          // Extraire les propriétés
+          const properties = {}
+          if (page.properties) {
+            Object.entries(page.properties).forEach(([key, prop]) => {
+              const value = extractPropertyValue(prop)
+              if (value !== null) {
+                properties[key] = {
+                  type: prop.type,
+                  value: value
+                }
+              }
+            })
+          }
+
+          return {
+            id: page.id,
+            title: title,
+            icon: page.icon?.emoji || page.icon?.file?.url || page.icon?.external?.url || null,
+            url: page.url,
+            parent: page.parent,
+            archived: page.archived || false,
+            properties: properties,
+            created_time: page.created_time,
+            last_edited_time: page.last_edited_time
+          }
+        })
+
+      allPages = allPages.concat(pages)
+      hasMore = data.has_more || false
+      nextCursor = data.next_cursor || null
+    }
+
+    return allPages
+  } catch (error) {
+    console.error('Erreur lors de la récupération des pages:', error)
     throw error
   }
 }

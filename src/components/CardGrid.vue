@@ -103,7 +103,7 @@ const sourceDisplay = computed(() => {
           </span>
 
           <!-- Note -->
-          <div v-if="card.note" class="my-4 note p-3 bg-yellow-50 border border-yellow-200">
+          <div v-if="card.note" class="my-4 note p-3 bg-yellow-300 border border-yellow-200">
             <p class="text-base text-slate-600">{{ card.note }}</p>
           </div>
         </template>

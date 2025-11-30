@@ -74,7 +74,7 @@ const sourceDisplay = computed(() => {
         ? 'p-3 flex-col justify-between gap-3'
         : 'flex-col gap-2'
     ]">
-      <div :class="viewMode === 'grid' ? 'flex-1' : 'flex flex-wrap align-baseline justify-between gap-3'">
+      <div :class="viewMode === 'grid' ? 'flex-1' : 'flex flex-wrap align-baseline justify-between'">
         <!-- Mode grille : ordre normal -->
         <template v-if="viewMode === 'grid'">
           <!-- Titre -->
@@ -112,7 +112,7 @@ const sourceDisplay = computed(() => {
         <template v-else>
           <!-- 1. Genre -->
           <div v-if="card.genre && Array.isArray(card.genre) && card.genre.length > 0"
-            class="flex gap-3 justify-between items-center">
+            class="flex gap-3 justify-between items-center mr-3 mb-2">
             <span v-for="(genre, index) in card.genre" :key="index" :class="[
               'inline-block bg-teal-200 px-3 py-1 text-xs font-medium genre-tag',
               card.genreClass ? `${card.genreClass}` : ''
@@ -162,7 +162,7 @@ const sourceDisplay = computed(() => {
           </div>
 
           <!-- 6. Like -->
-          <div class="flex items-center gap-2 like order-4 w-full grow-2 justify-end mt-[-10px]">
+          <div class="flex items-center gap-2 like order-4 w-full grow-2 justify-end">
             <svg v-if="card.like === true" width="15" height="13" viewBox="0 0 15 13" fill="none"
               xmlns="http://www.w3.org/2000/svg">
               <path

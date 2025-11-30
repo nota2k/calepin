@@ -83,7 +83,7 @@ p{
 .highlight::after {
   content: '';
   position: absolute;
-  width: 180%;
+  width: 100%;
   margin-top:2px;
   left: -8px;
   rotate: -5deg;
@@ -116,5 +116,21 @@ button{
     margin-bottom: 0;
     text-transform: uppercase;
     font-weight: 500;
+  }
+}
+
+.source{
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.7rem;
+  background-color: red;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.2rem;
+  &[data-source="youtube"]{
+    background-color: #ff0000;
+    color: #fff;
+  }
+  &[data-source="plex"]{
+    background-color: #f7c100;
+    color: #000;
   }
 }

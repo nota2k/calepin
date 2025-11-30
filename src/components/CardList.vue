@@ -1,9 +1,25 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   card: {
     type: Object,
     required: true
   }
+})
+
+const sourceDisplay = computed(() => {
+  if (!props.card.url) {
+    return { text: props.card.databaseId, dataValue: null }
+  }
+  const urlLower = props.card.url.toLowerCase()
+  if (urlLower.includes('youtube')) {
+    return { text: 'YouTube', dataValue: 'youtube' }
+  }
+  if (urlLower.includes('plex')) {
+    return { text: 'Plex', dataValue: 'plex' }
+  }
+  return { text: props.card.databaseId, dataValue: null }
 })
 </script>
 
@@ -11,7 +27,7 @@ defineProps({
   <a :href="card.url" target="_blank" rel="noopener noreferrer"
     class="overflow-hidden hover:shadow-lg transition-all duration-300 flex items-center gap-10 p-4 group border-gray-900 border-b-1">
     <!-- Header avec le nom de la base de données (vertical) -->
-    <div class="flex-shrink-0 w-32 py-4 px-3 font-medium rounded-lg text-center">
+    <div class="flex-shrink-0 w-32 py-4 px-3 font-medium rounded-lg text-center flex flex-col gap-2">
       <span class="text-slate-700 font-semibold text-sm highlight"
         :style="{ '--highlight-color': card.databaseColor }">{{ card.databaseName }}</span>
     </div>
@@ -41,6 +57,8 @@ defineProps({
       </div>
 
       <!-- Icône de lien -->
+      <span v-if="sourceDisplay.text" class="text-xs text-slate-500 font-normal source"
+        :data-source="sourceDisplay.dataValue">{{ sourceDisplay.text }}</span>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
         class="flex-shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors">

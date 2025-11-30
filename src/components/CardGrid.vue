@@ -1,9 +1,25 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   card: {
     type: Object,
     required: true
   }
+})
+
+const sourceDisplay = computed(() => {
+  if (!props.card.url) {
+    return { text: props.card.databaseId, dataValue: null }
+  }
+  const urlLower = props.card.url.toLowerCase()
+  if (urlLower.includes('youtube')) {
+    return { text: 'YouTube', dataValue: 'youtube' }
+  }
+  if (urlLower.includes('plex')) {
+    return { text: 'Plex', dataValue: 'plex' }
+  }
+  return { text: props.card.databaseId, dataValue: null }
 })
 </script>
 
@@ -15,12 +31,16 @@ defineProps({
       <span class="text-xl text-slate-700 font-semibold highlight text-2xl"
         :style="{ '--highlight-color': card.databaseColor }">{{
           card.databaseName }}</span>
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-        class="lucide lucide-circle-play-icon lucide-circle-play">
-        <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
-        <circle cx="12" cy="12" r="10" />
-      </svg>
+      <div class="flex items-center gap-2">
+        <span v-if="sourceDisplay.text" class="text-sm text-slate-500 font-normal source"
+          :data-source="sourceDisplay.dataValue">{{ sourceDisplay.text }}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          class="lucide lucide-circle-play-icon lucide-circle-play">
+          <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
+          <circle cx="12" cy="12" r="10" />
+        </svg>
+      </div>
     </div>
 
     <!-- Corps de la card -->

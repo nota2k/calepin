@@ -98,7 +98,7 @@ p{
   font-size: 0.8rem;
 }
 
-.group:not{
+.group{
   height:fit-content;
   background: white;
   /* border-top: 2px solid black;
@@ -107,7 +107,7 @@ p{
   border-bottom: 1px dashed black; */
 
   h2,h3,h4,h5,h6{
-    font-family: 'MistralSCITC', sans-serif;
+    font-family: 'MistralSCITC', sans-serif!important;
     font-size: 1.8rem;
     line-height: 1.2;
     margin-bottom: 0;
